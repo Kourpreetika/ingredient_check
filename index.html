@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Product Scanner</title>
+
+    <!-- New Rocker Font -->
+    <link href="https://fonts.googleapis.com/css2?family=New+Rocker&display=swap" rel="stylesheet">
+
+    <style>
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            background-color:#000;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+            font-family: Arial, sans-serif;
+        }
+        .app-name-top{
+    position:absolute;
+    top:30px;
+    font-family:'New Rocker', cursive;
+    color:white;
+    font-size:40px;
+    letter-spacing:3px;
+}
+        .container{
+            text-align:center;
+            padding:40px;
+            border:1px solid #333;
+            border-radius:15px;
+            background:#111;
+            box-shadow:0 0 20px rgba(255,255,255,0.1);
+        }
+
+        h1{
+            font-family:'New Rocker', cursive;
+            color:white;
+            font-size:48px;
+            margin-bottom:25px;
+            letter-spacing:2px;
+        }
+
+        .scan-btn{
+            background:#fff;
+            color:#000;
+            border:none;
+            padding:15px 35px;
+            font-size:18px;
+            font-weight:bold;
+            border-radius:8px;
+            cursor:pointer;
+            transition:0.3s;
+        }
+
+        .scan-btn:hover{
+            background:#dcdcdc;
+            transform:scale(1.05);
+        }
+    </style>
+</head>
+<body>
+   <h2 class="app-name-top">Ingredient_Check</h2>
+    <div class="container">
+        <h1>Scan Me</h1>
+        <button class="scan-btn">Scan the Product</button>
+    </div>
+
+</body>
+</html>
