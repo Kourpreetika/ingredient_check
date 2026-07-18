@@ -1,32 +1,34 @@
 # Ingredient_Check
 
-A web app that helps users scan food product ingredient labels, extract text with OCR, and flag potentially concerning additives with severity levels and health-related notes.
+A browser app that scans food ingredient labels (photo or text), flags concerning additives, explains health risks if consumed, and warns when a product doesn’t fit your personal health conditions (for example diabetes).
 
 ## Overview
 
-**Ingredient_Check** lets users upload or photograph an ingredient label on a packaged food product. The app uses **Optical Character Recognition (OCR)** to read the label text, then matches it against a curated database of additives (with aliases and E-numbers collapsed into single findings).
+**Ingredient_Check** lets you upload or photograph a packaged food label. It uses **OCR** ([Tesseract.js](https://tesseract.projectnaptha.com/)) to read the text, then matches it against a curated additive database (aliases and E-numbers collapse into one finding).
 
-> **Disclaimer:** This app is for educational and informational purposes only. It does not provide medical advice. Flagged ingredients reflect a curated list — absence of a flag does not mean a product is safe.
+You can also set **health conditions** (diabetes, high blood pressure, heart disease, kidney disease, IBS, asthma/sulfites). When a scan finds conflicting ingredients — such as sugar with diabetes — the app shows a clear **Not recommended for you** warning.
+
+> **Disclaimer:** Educational and informational use only. Not medical advice. A missing flag does not mean a product is safe. Always follow your clinician’s guidance.
 
 ## Features
 
-- **Food product check** — Asks whether the item is food before allowing a scan
-- **OCR label scanning** — Reads ingredient text from photos via [Tesseract.js](https://tesseract.projectnaptha.com/)
+- **Food check** — Confirms the item is food before scanning
+- **OCR label scan** — Reads ingredients from photos
 - **Drag & drop + camera** — Drop an image, pick a file, or use the phone camera
 - **Paste text fallback** — Analyze a pasted ingredients list when OCR struggles
-- **Smarter matching** — Canonical ingredients with aliases (e.g. MSG / E621 / monosodium glutamate → one result); word-boundary checks for short codes
-- **Severity report** — High / moderate / low concern badges, grouped by category
-- **Health conditions** — Set diabetes, heart disease, etc.; scans warn when ingredients are not recommended for you
+- **Harmful-ingredient report** — Lists every matched additive of concern
+- **Health risks** — For each finding: risks if consumed regularly, severity, and who should be careful
+- **Smarter matching** — Aliases collapsed (e.g. MSG / E621 / monosodium glutamate → one result); nested false matches reduced
+- **Health conditions** — Personalized “not recommended” alerts (saved on this device)
 - **Scan history** — Recent checks on this device; tap to restore a report
+- **No backend** — Runs fully in the browser (no build step)
 
-No build step, framework, or backend required — runs entirely in the browser.
-
-## Project Structure
+## Project structure
 
 ```
 ingredient_check/
 ├── index.html           # UI, styles, and layout
-├── javascript.js        # OCR flow, ingredient DB, matching, history
+├── javascript.js        # OCR, ingredient DB, matching, conditions, history
 ├── ingredient_check.mp4 # Full-screen background video
 ├── image (2).png        # Sample/reference image
 └── README.md
@@ -34,12 +36,25 @@ ingredient_check/
 
 ## How to run
 
-Open `index.html` in a modern browser (Chrome, Edge, Firefox, Safari). For camera capture on a phone, serve over HTTPS or `localhost`.
+**Option A — open the file**
+
+Open `index.html` in Chrome, Edge, Firefox, or Safari.
+
+**Option B — local server (recommended for camera)**
+
+```powershell
+cd c:\Users\kourp\ingredient_check
+python -m http.server 5500
+```
+
+Then visit `http://localhost:5500/`.
+
+Camera capture on a phone works best over **HTTPS** or **localhost**.
 
 ## Tips for better scans
 
 - Use good lighting and a straight, in-focus photo
-- Crop to the ingredients section if possible
+- Crop to the **Ingredients** section when possible
 - Plain text screenshots work well for testing
 - If OCR is weak, use **Paste text instead**
 
@@ -51,23 +66,27 @@ Red 40, Yellow 5, Monosodium Glutamate, Partially Hydrogenated Soybean Oil,
 Carrageenan, Artificial Flavor.
 ```
 
+With **Diabetes** selected under *My health conditions*, sugar / HFCS-style ingredients should trigger a personalized not-recommended warning.
+
 ## How it works
 
 ```
-User uploads image (or pastes text)
+Set health conditions (optional)
        ↓
-Tesseract.js extracts text (OCR) — skipped for paste
+Upload label photo or paste text
        ↓
-Text normalized (case, punctuation, spacing)
+Tesseract.js extracts text (skipped for paste)
        ↓
-Each database entry checked via aliases (longest first)
+Text normalized · image lightly preprocessed for OCR
        ↓
-Duplicates collapsed · severity sorted
+Match aliases (longest first) · collapse duplicates
        ↓
-Report + history saved on this device
+Build report: harmful list + risks + condition warnings
+       ↓
+Save scan to history on this device
 ```
 
-Ingredient data lives in `javascript.js` as entries like:
+Ingredient entries in `javascript.js` look like:
 
 ```js
 {
@@ -76,23 +95,51 @@ Ingredient data lives in `javascript.js` as entries like:
   aliases: ["monosodium glutamate", "msg", "e621"],
   category: "Flavor Enhancers",
   severity: "moderate",
-  note: "Flavor enhancer; may cause sensitivity in some people.",
+  note: "Flavor enhancer that boosts savory (umami) taste.",
+  risks: [
+    "Some people get headache, flushing, or tingling shortly after eating it",
+    "Adds sodium, which can matter for blood pressure",
+  ],
+  watchFor: "People who notice MSG sensitivity or are limiting sodium.",
 }
 ```
 
+Condition-specific advice is mapped separately (for example sugar → not recommended with diabetes).
+
 ## Ingredient categories covered
 
-- Sweeteners (HFCS, aspartame, sucralose, E950–E955)
+- Sweeteners (sugar, HFCS, aspartame, sucralose, E950–E955)
 - Preservatives (sodium benzoate, BHT, TBHQ, nitrates, sulfites)
 - Artificial colors (Red 40, Yellow 5, tartrazine, E102–E133)
-- Fats & oils (palm oil, hydrogenated oils)
+- Fats & oils (palm oil, hydrogenated / trans fats)
 - Flavor enhancers (MSG, E621, yeast extract)
 - Emulsifiers & thickeners (carrageenan, polysorbate 80)
 - Other additives (maltodextrin, titanium dioxide, brominated vegetable oil, etc.)
 
+## Health conditions
+
+| Condition | Example warnings |
+| --- | --- |
+| Diabetes | Sugar, HFCS, maltodextrin, dextrose |
+| High blood pressure | MSG, yeast extract, cured-meat additives |
+| Heart disease | Hydrogenated oils / trans fats, nitrites |
+| Kidney disease | Phosphates, aluminum additives |
+| IBS / sensitive gut | Carrageenan, polysorbates |
+| Asthma / sulfite sensitivity | Sulfites, some dyes (e.g. Yellow 5) |
+
 ## Limitations
 
-- OCR accuracy depends on image quality; blurry or curved labels may misread text
-- Matching is substring / boundary based — typos or unusual spellings may be missed
-- Database is static and manually maintained — not exhaustive
-- History stays in the browser (`localStorage`) only
+- OCR depends on image quality; blurry or curved labels may misread text
+- Matching is text-based — typos or unusual spellings can be missed
+- Database is curated and static — not exhaustive
+- History and health conditions stay in the browser (`localStorage`) only
+- Personalized tips are educational, not a clinical diet plan
+
+## Push to GitHub
+
+```powershell
+cd c:\Users\kourp\ingredient_check
+git add .
+git commit -m "Improve Ingredient_Check: health risks, conditions, and UI"
+git push -u origin HEAD
+```
