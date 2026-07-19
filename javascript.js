@@ -749,11 +749,48 @@ const INGREDIENT_DB = [
     ],
     watchFor: "Anyone — this is a high-priority avoid.",
   },
+  {
+    id: "caffeine",
+    name: "Caffeine",
+    aliases: [
+      "caffeine",
+      "caffeinated",
+      "guarana",
+      "yerba mate",
+      "mate extract",
+      "coffee extract",
+      "green tea extract",
+    ],
+    category: "Other Additives",
+    severity: "moderate",
+    note: "Stimulant found in soda, energy drinks, chocolate, tea, and coffee extracts.",
+    risks: [
+      "Can raise heart rate and disrupt sleep, especially in children",
+      "Kids are more sensitive to caffeine than adults at the same dose",
+      "Easy to overconsume in sodas, energy drinks, and ‘natural’ extracts",
+    ],
+    watchFor: "Children, teens, pregnant people, and anyone sensitive to stimulants.",
+  },
 ];
 
 const HISTORY_KEY = "ingredient_check_history";
 const CONDITIONS_KEY = "ingredient_check_conditions";
+const KIDS_MODE_KEY = "ingredient_check_kids_mode";
 const MAX_HISTORY = 12;
+
+/** Ingredient ids that count as “High Sugar” in Kids Safety Mode. */
+const KIDS_HIGH_SUGAR_IDS = new Set([
+  "hfcs",
+  "corn-syrup",
+  "invert-sugar",
+  "fructose",
+  "dextrose",
+  "added-sugar",
+  "maltodextrin",
+]);
+
+/** Synthetic dye ids (Artificial Color flag). Caramel color included as coloring. */
+const KIDS_COLOR_CATEGORIES = new Set(["Artificial Colors"]);
 
 /** User-selectable conditions → personalized “not recommended” advice. */
 const HEALTH_CONDITIONS = [
@@ -861,6 +898,301 @@ const AVOID_FOR = {
   },
 };
 
+/**
+ * Chatbot condition knowledge — answers are tied to the current scan’s findings.
+ * Educational only, not medical advice.
+ */
+const CHAT_CONDITIONS = [
+  {
+    id: "pcos",
+    label: "PCOS",
+    aliases: ["pcos", "pcod", "polycystic", "poly cystic"],
+    avoidIds: [
+      "hfcs",
+      "corn-syrup",
+      "invert-sugar",
+      "fructose",
+      "dextrose",
+      "added-sugar",
+      "maltodextrin",
+      "hydrogenated",
+      "shortening",
+      "aspartame",
+      "sucralose",
+      "acesulfame",
+    ],
+    avoidCategories: ["Artificial Colors", "Sweeteners"],
+    why: {
+      "hfcs": "Can worsen insulin resistance, which is common with PCOS",
+      "corn-syrup": "Raises blood sugar quickly — unhelpful for PCOS hormone balance",
+      "invert-sugar": "Spikes glucose; frequent spikes can aggravate PCOS symptoms",
+      "fructose": "Extra fructose load may worsen metabolic stress with PCOS",
+      "dextrose": "Pure glucose spike — best limited with PCOS",
+      "added-sugar": "High sugar intake is linked with worse insulin resistance in PCOS",
+      "maltodextrin": "Can spike blood sugar like sugar",
+      "hydrogenated": "Trans fats may worsen inflammation and metabolic health",
+      "shortening": "Often high in saturated/trans fats — limit with PCOS",
+      "aspartame": "Ultra-processed sweetener — many clinicians prefer whole-food swaps",
+      "sucralose": "Artificial sweetener; prefer unsweetened options when possible",
+      "acesulfame": "Artificial sweetener often paired with other ultraprocessed additives",
+    },
+    categoryWhy: {
+      "Artificial Colors": "Marker of ultraprocessed food — better limited with PCOS",
+      Sweeteners: "Sweetener load can work against blood-sugar stability",
+    },
+    okMessage:
+      "This scan didn’t flag the usual PCOS red flags (added sugars, trans fats, or heavy artificial colors). That doesn’t mean it’s a perfect food — still check portions and overall diet with your clinician.",
+    badLead: "I’d be careful — this product isn’t a great everyday choice with PCOS.",
+  },
+  {
+    id: "diabetes",
+    label: "diabetes",
+    aliases: ["diabetes", "diabetic", "blood sugar", "blood glucose", "insulin"],
+    avoidIds: ["hfcs", "corn-syrup", "invert-sugar", "fructose", "dextrose", "added-sugar", "maltodextrin"],
+    avoidCategories: ["Sweeteners"],
+    why: {
+      "hfcs": "Raises blood sugar quickly",
+      "corn-syrup": "Raises blood sugar",
+      "invert-sugar": "Spikes glucose",
+      "fructose": "Can worsen blood sugar and liver load",
+      "dextrose": "Pure glucose — spikes fast",
+      "added-sugar": "Raises blood glucose",
+      "maltodextrin": "Spikes blood sugar like sugar",
+    },
+    categoryWhy: { Sweeteners: "Sweetener load can raise glucose" },
+    okMessage:
+      "No major sugar-type additives matched on this label for diabetes. Still verify carbs and serving size — this isn’t a medical clearance.",
+    badLead: "Not a great match for diabetes based on this scan.",
+  },
+  {
+    id: "hypertension",
+    label: "high blood pressure",
+    aliases: ["hypertension", "high blood pressure", "blood pressure", "bp"],
+    avoidIds: ["msg", "yeast-extract", "hydrogenated", "sodium-nitrite", "sodium-nitrate"],
+    avoidCategories: [],
+    why: {
+      msg: "Adds sodium and may encourage overeating salty foods",
+      "yeast-extract": "Often high in sodium",
+      hydrogenated: "Trans fats harm heart and vessel health",
+      "sodium-nitrite": "Cured meats are usually very high in salt",
+      "sodium-nitrate": "Common in salty processed meats",
+    },
+    categoryWhy: {},
+    okMessage:
+      "Nothing on our high-BP caution list stood out in this scan. Sodium can still be high — check the nutrition panel.",
+    badLead: "I’d limit this if you have high blood pressure.",
+  },
+  {
+    id: "heart",
+    label: "heart disease",
+    aliases: ["heart disease", "heart", "cardiac", "cholesterol"],
+    avoidIds: ["hydrogenated", "shortening", "palm-oil", "sodium-nitrite", "sodium-nitrate"],
+    avoidCategories: ["Fats & Oils"],
+    why: {
+      hydrogenated: "Trans fats raise cardiovascular risk",
+      shortening: "Often high in saturated or trans fats",
+      "palm-oil": "High in saturated fat",
+      "sodium-nitrite": "Processed meats linked with higher long-term heart risk",
+      "sodium-nitrate": "Frequent cured-meat intake is a heart concern",
+    },
+    categoryWhy: { "Fats & Oils": "Fat quality matters for heart health" },
+    okMessage:
+      "No major heart-risk additives from our list showed up. Still watch saturated fat and overall diet.",
+    badLead: "This looks like a poor regular choice with heart disease concerns.",
+  },
+  {
+    id: "kidney",
+    label: "kidney disease",
+    aliases: ["kidney", "renal", "ckd"],
+    avoidIds: ["phosphates", "aluminum"],
+    avoidCategories: [],
+    why: {
+      phosphates: "Added phosphates absorb easily and stress kidneys",
+      aluminum: "Clears poorly when kidneys are impaired",
+    },
+    categoryWhy: {},
+    okMessage: "No phosphate/aluminum flags from our list. Confirm with your renal dietitian for your stage.",
+    badLead: "Not recommended for kidney disease based on additives we found.",
+  },
+  {
+    id: "ibs",
+    label: "IBS",
+    aliases: ["ibs", "irritable bowel", "sensitive gut", "bloating"],
+    avoidIds: ["carrageenan", "polysorbate-80", "polysorbate-60"],
+    avoidCategories: ["Emulsifiers & Thickeners"],
+    why: {
+      carrageenan: "May worsen bloating or inflammation for some people",
+      "polysorbate-80": "Some emulsifiers may irritate a sensitive gut",
+      "polysorbate-60": "Industrial emulsifiers may bother sensitive digestion",
+    },
+    categoryWhy: { "Emulsifiers & Thickeners": "Can bother a sensitive gut" },
+    okMessage: "No classic IBS-trigger emulsifiers matched. Individual triggers still vary.",
+    badLead: "This may be rough on an IBS / sensitive gut.",
+  },
+  {
+    id: "asthma",
+    label: "asthma / sulfite sensitivity",
+    aliases: ["asthma", "sulfite", "sulphite", "breathing"],
+    avoidIds: ["sulfites", "yellow-5"],
+    avoidCategories: [],
+    why: {
+      sulfites: "Can trigger breathing problems",
+      "yellow-5": "Tartrazine can trigger reactions in some sensitive people",
+    },
+    categoryWhy: {},
+    okMessage: "No sulfite / Yellow 5 flags in this scan. Still be cautious with known personal triggers.",
+    badLead: "I’d avoid this with asthma / sulfite sensitivity.",
+  },
+  {
+    id: "kids",
+    label: "kids",
+    aliases: ["kid", "kids", "child", "children", "toddler", "my child", "my kid"],
+    avoidIds: [
+      "caffeine",
+      "hfcs",
+      "corn-syrup",
+      "invert-sugar",
+      "fructose",
+      "dextrose",
+      "added-sugar",
+      "maltodextrin",
+      "red-40",
+      "yellow-5",
+      "yellow-6",
+      "blue-1",
+      "blue-2",
+    ],
+    avoidCategories: ["Artificial Colors"],
+    why: {
+      caffeine: "Children are more sensitive to caffeine",
+      "added-sugar": "High sugar isn’t ideal for children",
+      hfcs: "High sugar load for kids",
+      "corn-syrup": "Adds empty sugar calories kids don’t need",
+      "red-40": "Linked with hyperactivity concerns in some children",
+      "yellow-5": "Associated with behavioral effects in sensitive kids",
+      "yellow-6": "Artificial dye best limited for children",
+      "blue-1": "Artificial dye with no nutrition benefit for kids",
+      "blue-2": "Artificial dye best limited for children",
+    },
+    categoryWhy: { "Artificial Colors": "Artificial dyes are best limited for children" },
+    okMessage: "No major kids red flags (colors / high sugar / caffeine) from our checklist.",
+    badLead: "Not recommended below 10 years based on what we found.",
+  },
+];
+
+/**
+ * Product name → healthier swaps (educational suggestions, not medical advice).
+ * Matched by aliases (case-insensitive substring).
+ */
+const PRODUCT_ALTERNATIVES = [
+  {
+    id: "lays-magic-masala",
+    displayName: "Lay's Magic Masala",
+    aliases: [
+      "lay's magic masala",
+      "lays magic masala",
+      "magic masala",
+      "lay's magic",
+      "lays magic",
+      "lay's masala",
+      "lays masala",
+    ],
+    alternatives: [
+      { name: "Too Yumm", why: "Baked multigrain snacks — usually less oil than deep-fried chips" },
+      { name: "Roasted Makhana", why: "Light roasted fox nuts — high fiber, minimally processed" },
+      { name: "Baked Chips", why: "Baked instead of deep-fried — typically lower fat and fewer additives" },
+    ],
+  },
+  {
+    id: "lays-classic",
+    displayName: "Lay's Classic / Salted Chips",
+    aliases: ["lay's classic", "lays classic", "lay's salted", "lays salted", "potato chips", "potato crisps"],
+    alternatives: [
+      { name: "Baked potato chips", why: "Same crunch with less frying oil" },
+      { name: "Roasted Makhana", why: "Airy, roasted snack with more protein and fiber" },
+      { name: "Air-popped popcorn", why: "Whole-grain snack you can season yourself" },
+    ],
+  },
+  {
+    id: "kurkure",
+    displayName: "Kurkure",
+    aliases: ["kurkure", "cheetos", "puffcorn", "corn puffs"],
+    alternatives: [
+      { name: "Too Yumm Multigrain", why: "Baked grains instead of extruded fried snacks" },
+      { name: "Roasted chana", why: "Simple roasted chickpeas — protein-rich and filling" },
+      { name: "Homemade roasted peanuts", why: "Whole nuts without industrial flavors and colors" },
+    ],
+  },
+  {
+    id: "coca-cola",
+    displayName: "Coca-Cola / Cola soda",
+    aliases: ["coca-cola", "coca cola", "coke", "pepsi", "cola", "soft drink", "soda"],
+    alternatives: [
+      { name: "Sparkling water + lemon", why: "Fizz without added sugar or artificial colors" },
+      { name: "Unsweetened iced tea", why: "Flavor without the sugar load of cola" },
+      { name: "Fresh coconut water", why: "Naturally hydrating with no added sweeteners" },
+    ],
+  },
+  {
+    id: "maggi",
+    displayName: "Instant noodles (Maggi-style)",
+    aliases: ["maggi", "instant noodles", "ramen cup", "cup noodles", "top ramen"],
+    alternatives: [
+      { name: "Whole-wheat noodles + veggies", why: "More fiber and control over salt and additives" },
+      { name: "Rice + dal + vegetables", why: "Balanced home meal without the flavor-packet load" },
+      { name: "Soba or millets noodles", why: "Often lower in additives when cooked simply" },
+    ],
+  },
+  {
+    id: "biscuits",
+    displayName: "Packaged sweet biscuits",
+    aliases: ["parle-g", "parle g", "oreo", "britannia", "good day", "marie gold", "biscuit", "cookies"],
+    alternatives: [
+      { name: "Roasted nuts & seeds mix", why: "Satisfying crunch without refined flour and sugar" },
+      { name: "Fruit + peanut butter", why: "Natural sweetness with protein and fiber" },
+      { name: "Oat cookies (homemade)", why: "You control sugar, oil, and additives" },
+    ],
+  },
+  {
+    id: "namkeen",
+    displayName: "Packaged namkeen / mixture",
+    aliases: ["namkeen", "bhujia", "aloo bhujia", "mixture", "chanachur", "haldiram"],
+    alternatives: [
+      { name: "Roasted Makhana", why: "Light and less oily than fried namkeen" },
+      { name: "Baked khakra", why: "Crispy whole-grain snack with less deep-frying" },
+      { name: "Roasted chana / murmura", why: "Simple roasted options with fewer additives" },
+    ],
+  },
+  {
+    id: "energy-drink",
+    displayName: "Energy drink",
+    aliases: ["red bull", "monster energy", "energy drink", "sting", "cloud 9"],
+    alternatives: [
+      { name: "Black coffee or green tea", why: "Natural caffeine without syrups and colors" },
+      { name: "Electrolyte water (low sugar)", why: "Hydration without stimulant overload" },
+      { name: "Fresh fruit smoothie", why: "Energy from real food, not additives" },
+    ],
+  },
+];
+
+const GENERIC_SNACK_ALTERNATIVES = [
+  { name: "Too Yumm", why: "Baked multigrain option instead of deep-fried packaged snacks" },
+  { name: "Roasted Makhana", why: "Light, high-fiber roast with minimal processing" },
+  { name: "Baked Chips", why: "Crunch with typically less oil than fried chips" },
+];
+
+const GENERIC_DRINK_ALTERNATIVES = [
+  { name: "Sparkling water", why: "Fizz without sugar, colors, or preservatives" },
+  { name: "Unsweetened tea / coffee", why: "Flavor without sweetener additives" },
+  { name: "Fresh fruit-infused water", why: "Hydration with natural taste only" },
+];
+
+const GENERIC_SWEET_ALTERNATIVES = [
+  { name: "Fresh fruit", why: "Natural sweetness with fiber" },
+  { name: "Dark chocolate (small piece)", why: "Often fewer additives than candy bars" },
+  { name: "Homemade yogurt parfait", why: "You control sugar and skip artificial colors" },
+];
+
 // —— DOM ——
 const scanBtn = document.getElementById("scanBtn");
 const imageInput = document.getElementById("imageInput");
@@ -886,9 +1218,299 @@ const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const progressLabel = document.getElementById("progressLabel");
 const conditionList = document.getElementById("conditionList");
 const conditionActiveNote = document.getElementById("conditionActiveNote");
+const kidsModeToggle = document.getElementById("kidsModeToggle");
+const kidsModeNote = document.getElementById("kidsModeNote");
+const kidsProductCheck = document.getElementById("kidsProductCheck");
 
 let currentObjectUrl = null;
 let isScanning = false;
+let lastProductName = "";
+/** @type {{ findings: object[], extractedText: string }} */
+let lastChatContext = { findings: [], extractedText: "" };
+
+function loadKidsMode() {
+  try {
+    return localStorage.getItem(KIDS_MODE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveKidsMode(on) {
+  localStorage.setItem(KIDS_MODE_KEY, on ? "1" : "0");
+}
+
+let kidsModeEnabled = loadKidsMode();
+
+function updateKidsModeNote() {
+  if (!kidsModeNote) return;
+  kidsModeNote.textContent = kidsModeEnabled
+    ? "On — scans will check artificial color, high sugar, and caffeine for kids."
+    : "Off — turn on, or mark “This product is for children” on a scan.";
+}
+
+function renderKidsMode() {
+  if (kidsModeToggle) kidsModeToggle.checked = kidsModeEnabled;
+  updateKidsModeNote();
+}
+
+function isKidsProductText(text) {
+  const t = String(text || "").toLowerCase();
+  return (
+    /\bfor\s+kids\b/.test(t) ||
+    /\bfor\s+children\b/.test(t) ||
+    /\bchildren'?s\b/.test(t) ||
+    /\bkids'\s/.test(t) ||
+    /\bkids\s+snack\b/.test(t) ||
+    /\bages?\s*\d/.test(t) ||
+    /\bunder\s*\d+\s*years?\b/.test(t) ||
+    /\btoddler\b/.test(t) ||
+    /\bbaby\s+food\b/.test(t) ||
+    /\bjunior\b/.test(t)
+  );
+}
+
+function kidsSafetyActive(extractedText) {
+  return (
+    kidsModeEnabled ||
+    Boolean(kidsProductCheck?.checked) ||
+    isKidsProductText(extractedText)
+  );
+}
+
+/**
+ * Build kids flags: Artificial Color, High Sugar, Caffeine.
+ * Returns ordered unique flag objects { id, label }.
+ */
+function getKidsFlags(findings, extractedText = "") {
+  const flags = [];
+  const seen = new Set();
+  const add = (id, label) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    flags.push({ id, label });
+  };
+
+  if (findings.some((f) => KIDS_COLOR_CATEGORIES.has(f.category))) {
+    add("artificial-color", "Artificial Color");
+  }
+  if (findings.some((f) => KIDS_HIGH_SUGAR_IDS.has(f.id))) {
+    add("high-sugar", "High Sugar");
+  }
+  const text = String(extractedText || "");
+  const hasCaffeine =
+    findings.some((f) => f.id === "caffeine") ||
+    /\bcaffeine\b|\bguarana\b|\benergy drink\b|\bcoffee extract\b/i.test(text);
+  if (hasCaffeine) add("caffeine", "Caffeine");
+
+  return flags;
+}
+
+function renderKidsSafetyBox(flags, { autoDetected = false } = {}) {
+  if (flags.length === 0) {
+    return `
+      <div class="kids-safety-box is-clear">
+        <h3>Kids Safety Mode</h3>
+        <p class="kids-safety-lead">No artificial color, high sugar, or caffeine flags from our kids checklist${
+          autoDetected ? " (kids product wording detected on the label)" : ""
+        }.</p>
+      </div>`;
+  }
+
+  return `
+    <div class="kids-safety-box">
+      <h3>Kids Safety Mode</h3>
+      <p class="kids-safety-lead">${
+        autoDetected
+          ? "This label looks aimed at children. Here’s what stood out:"
+          : "If this product is for children, these concerns stood out:"
+      }</p>
+      <p class="kids-contains-label">Contains</p>
+      <ul class="kids-flag-list">
+        ${flags
+          .map(
+            (f) => `
+          <li>
+            <span class="kids-flag-icon" aria-hidden="true">!</span>
+            <span>${escapeHtml(f.label)}</span>
+          </li>`
+          )
+          .join("")}
+      </ul>
+      <p class="kids-age-warn">Not recommended below 10 years.</p>
+    </div>`;
+}
+
+// —— Post-scan AI chatbot ——
+function renderScanChatBox() {
+  return `
+    <div class="scan-chat" id="scanChat">
+      <div class="scan-chat-head">
+        <h3 class="report-section-title">Ask about this scan</h3>
+        <p class="summary-lead">Get a specific answer from this product’s ingredients — educational, not medical advice.</p>
+      </div>
+      <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
+        <div class="chat-bubble bot">
+          Hi — ask me anything about <strong>this scan</strong>. Try: “Can I eat this if I have PCOS?”
+        </div>
+      </div>
+      <div class="chat-suggestions" id="chatSuggestions">
+        <button type="button" class="chat-chip" data-chat-q="Can I eat this if I have PCOS?">Can I eat this if I have PCOS?</button>
+        <button type="button" class="chat-chip" data-chat-q="Is this OK with diabetes?">Is this OK with diabetes?</button>
+        <button type="button" class="chat-chip" data-chat-q="Is this safe for kids?">Is this safe for kids?</button>
+        <button type="button" class="chat-chip" data-chat-q="What’s the biggest concern here?">What’s the biggest concern?</button>
+      </div>
+      <form class="chat-form" id="chatForm">
+        <label class="sr-only" for="chatInput">Your question</label>
+        <input type="text" id="chatInput" maxlength="200" placeholder="Ask about this product…" autocomplete="off">
+        <button type="submit" class="text-analyze-btn chat-send-btn">Ask</button>
+      </form>
+    </div>`;
+}
+
+function appendChatBubble(role, html) {
+  const box = document.getElementById("chatMessages");
+  if (!box) return;
+  const el = document.createElement("div");
+  el.className = `chat-bubble ${role}`;
+  el.innerHTML = html;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+function matchChatCondition(question) {
+  const q = normalizeProductQuery(question);
+  let best = null;
+  let bestScore = 0;
+  for (const cond of CHAT_CONDITIONS) {
+    for (const alias of cond.aliases) {
+      const a = normalizeProductQuery(alias);
+      if (!a) continue;
+      let score = 0;
+      if (q.includes(a)) score = 50 + a.length;
+      if (score > bestScore) {
+        bestScore = score;
+        best = cond;
+      }
+    }
+  }
+  return bestScore >= 50 ? best : null;
+}
+
+function conflictsForCondition(cond, findings) {
+  const hits = [];
+  const seen = new Set();
+  for (const f of findings) {
+    const byId = cond.avoidIds?.includes(f.id);
+    const byCat = cond.avoidCategories?.includes(f.category);
+    if (!byId && !byCat) continue;
+    if (seen.has(f.id)) continue;
+    seen.add(f.id);
+    const reason =
+      cond.why?.[f.id] ||
+      cond.categoryWhy?.[f.category] ||
+      f.note ||
+      "Flagged on this label";
+    hits.push({ name: f.name, reason, severity: f.severity });
+  }
+  return hits;
+}
+
+function answerBiggestConcern(findings) {
+  if (!findings.length) {
+    return `This scan didn’t match additives from our concern list. The biggest remaining check is the full nutrition panel (sugar, salt, portion size) — and your clinician’s advice.`;
+  }
+  const top = [...findings].sort(
+    (a, b) => (SEVERITY_RANK[b.severity] || 0) - (SEVERITY_RANK[a.severity] || 0)
+  )[0];
+  const others = findings.length - 1;
+  return `The biggest concern on <strong>this scan</strong> is <strong>${escapeHtml(top.name)}</strong> (${escapeHtml(top.severity)} risk). ${escapeHtml(top.note)}${
+    others ? ` There ${others === 1 ? "is" : "are"} also ${others} other flagged item${others === 1 ? "" : "s"}.` : ""
+  }`;
+}
+
+function answerCanIEatGenerally(findings) {
+  if (!findings.length) {
+    return `Based on <strong>this scan</strong>, nothing on our harmful-additive list matched. That doesn’t guarantee it’s healthy — check sugar, salt, and portions. Educational only, not medical advice.`;
+  }
+  const high = findings.filter((f) => f.severity === "high");
+  if (high.length) {
+    return `I’d limit or avoid regular intake. This scan found <strong>${high.length} high-risk</strong> item${high.length === 1 ? "" : "s"} (e.g. ${escapeHtml(high[0].name)})${
+      findings.length > high.length ? `, plus ${findings.length - high.length} other concern${findings.length - high.length === 1 ? "" : "s"}` : ""
+    }. Occasional bites differ from daily use — ask your clinician for personal guidance.`;
+  }
+  return `Use caution. This scan flagged <strong>${findings.length}</strong> concern${findings.length === 1 ? "" : "s"} (including ${escapeHtml(findings[0].name)}). Not ideal as an everyday food. Educational only — not medical advice.`;
+}
+
+function answerConditionQuestion(cond, findings) {
+  const hits = conflictsForCondition(cond, findings);
+  if (!hits.length) {
+    return `${escapeHtml(cond.okMessage)} <em>Educational only — not medical advice.</em>`;
+  }
+  const list = hits
+    .slice(0, 6)
+    .map((h) => `<li><strong>${escapeHtml(h.name)}</strong> — ${escapeHtml(h.reason)}</li>`)
+    .join("");
+  return `${escapeHtml(cond.badLead)}<br><br>On <strong>this product’s label</strong> we found:<ul class="chat-reason-list">${list}</ul>Better as an occasional treat than a regular habit. <em>Educational only — not medical advice. Follow your clinician’s guidance for ${escapeHtml(cond.label)}.</em>`;
+}
+
+function generateChatAnswer(question, findings) {
+  const q = String(question || "").trim();
+  if (!q) return "Ask a question about this scanned product — for example PCOS, diabetes, or kids.";
+
+  const cond = matchChatCondition(q);
+  if (cond) return answerConditionQuestion(cond, findings);
+
+  const ql = q.toLowerCase();
+  if (/biggest|worst|main concern|most (harmful|dangerous|risky)/i.test(ql)) {
+    return answerBiggestConcern(findings);
+  }
+  if (/can i eat|safe to eat|should i (eat|avoid)|is (this|it) (ok|safe|fine|bad|good)/i.test(ql)) {
+    return answerCanIEatGenerally(findings);
+  }
+  if (/what.*(found|flag|harmful|wrong|contain)|summar(y|ise|ize)|explain/i.test(ql)) {
+    if (!findings.length) {
+      return `This scan didn’t flag additives from our curated list. You can still ask about a condition (e.g. PCOS) for a specific take.`;
+    }
+    const names = findings.map((f) => escapeHtml(f.name)).join(", ");
+    return `From <strong>this scan</strong> we flagged: ${names}. Ask something like “Can I eat this if I have PCOS?” for a condition-specific answer.`;
+  }
+
+  return `I can answer about <strong>this scan</strong> for conditions like PCOS, diabetes, high blood pressure, heart, kidney, IBS, asthma, or kids — or ask “What’s the biggest concern?” Try: <em>Can I eat this if I have PCOS?</em>`;
+}
+
+function bindScanChatUI(findings) {
+  const form = document.getElementById("chatForm");
+  const input = document.getElementById("chatInput");
+  const suggestions = document.getElementById("chatSuggestions");
+  if (!form || !input) return;
+
+  const ask = (raw) => {
+    const question = String(raw || "").trim();
+    if (!question) return;
+    appendChatBubble("user", escapeHtml(question));
+    input.value = "";
+    const typing = document.createElement("div");
+    typing.className = "chat-bubble bot chat-typing";
+    typing.textContent = "Thinking…";
+    document.getElementById("chatMessages")?.appendChild(typing);
+
+    window.setTimeout(() => {
+      typing.remove();
+      const answer = generateChatAnswer(question, findings);
+      appendChatBubble("bot", answer);
+    }, 350 + Math.min(600, question.length * 8));
+  };
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    ask(input.value);
+  });
+
+  suggestions?.querySelectorAll("[data-chat-q]").forEach((btn) => {
+    btn.addEventListener("click", () => ask(btn.getAttribute("data-chat-q")));
+  });
+}
 
 // —— Health conditions ——
 function loadConditions() {
@@ -1227,7 +1849,212 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-function verdictFor(findings, conditionAlerts = []) {
+function parseNutritionText(text) {
+  const raw = String(text || "");
+  if (!raw.trim()) return null;
+
+  const pick = (patterns) => {
+    for (const re of patterns) {
+      const m = raw.match(re);
+      if (m) {
+        const n = parseFloat(String(m[1]).replace(",", "."));
+        if (!Number.isNaN(n) && n >= 0 && n <= 1000) return n;
+      }
+    }
+    return null;
+  };
+
+  const sugar = pick([
+    /(?:total\s+)?sugars?\s*[:=\-]?\s*(\d+(?:[.,]\d+)?)\s*g/i,
+    /(?:of which\s+)?sugars?\s*[:=\-]?\s*(\d+(?:[.,]\d+)?)/i,
+    /sugars?\s*\([^)]*\)\s*(\d+(?:[.,]\d+)?)\s*g/i,
+    /(\d+(?:[.,]\d+)?)\s*g\s+(?:total\s+)?sugars?/i,
+    /carbohydrate[^.\n]{0,40}?sugars?\s*(\d+(?:[.,]\d+)?)/i,
+  ]);
+  const fat = pick([
+    /total\s+(?:fat|lipids?)\s*[:=\-]?\s*(\d+(?:[.,]\d+)?)\s*g/i,
+    /(?:^|[^\w])(?:fat|lipids?)\s*[:=\-]?\s*(\d+(?:[.,]\d+)?)\s*g/im,
+    /(\d+(?:[.,]\d+)?)\s*g\s+(?:total\s+)?(?:fat|lipids?)/i,
+    /fat\s*\([^)]*\)\s*(\d+(?:[.,]\d+)?)\s*g/i,
+  ]);
+  const protein = pick([
+    /proteins?\s*[:=\-]?\s*(\d+(?:[.,]\d+)?)\s*g/i,
+    /(\d+(?:[.,]\d+)?)\s*g\s+proteins?/i,
+    /proteins?\s*\([^)]*\)\s*(\d+(?:[.,]\d+)?)/i,
+  ]);
+
+  if (sugar == null && fat == null && protein == null) return null;
+  return {
+    sugar: sugar ?? 0,
+    fat: fat ?? 0,
+    protein: protein ?? 0,
+    partial: sugar == null || fat == null || protein == null,
+  };
+}
+
+function normalizeProductQuery(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9\s&+-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findProductAlternatives(productName) {
+  const q = normalizeProductQuery(productName);
+  if (!q || q.length < 2) return null;
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const product of PRODUCT_ALTERNATIVES) {
+    for (const alias of product.aliases) {
+      const a = normalizeProductQuery(alias);
+      if (!a) continue;
+      let score = 0;
+      if (q === a) score = 100;
+      else if (q.includes(a) || a.includes(q)) score = 70 + Math.min(a.length, 20);
+      else {
+        const qWords = q.split(" ");
+        const aWords = a.split(" ");
+        const overlap = aWords.filter((w) => w.length > 2 && qWords.some((qw) => qw.includes(w) || w.includes(qw)));
+        if (overlap.length >= Math.min(2, aWords.length)) score = 40 + overlap.length * 10;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = product;
+      }
+    }
+  }
+
+  return bestScore >= 40 ? best : null;
+}
+
+function genericAlternativesFromFindings(findings) {
+  const cats = new Set(findings.map((f) => f.category));
+  if (cats.has("Sweeteners") && !cats.has("Flavor Enhancers") && !cats.has("Artificial Colors")) {
+    return { label: "sweeter packaged foods", alternatives: GENERIC_SWEET_ALTERNATIVES };
+  }
+  const drinkSignals = findings.some((f) =>
+    /syrup|benzoate|phosphoric|caramel|caffeine|aspartame|sucralose|acesulfame/i.test(
+      `${f.name} ${f.matchedAlias || ""}`
+    )
+  );
+  if (drinkSignals && !cats.has("Flavor Enhancers")) {
+    return { label: "sugary or additive-heavy drinks", alternatives: GENERIC_DRINK_ALTERNATIVES };
+  }
+  return { label: "packaged snacks like this", alternatives: GENERIC_SNACK_ALTERNATIVES };
+}
+
+function renderAlternativesList(items) {
+  return `
+    <ul class="alt-list">
+      ${items
+        .map(
+          (alt) => `
+        <li>
+          <span class="alt-mark alt-mark-good" aria-hidden="true">✓</span>
+          <div class="alt-copy">
+            <strong>${escapeHtml(alt.name)}</strong>
+            ${alt.why ? `<span class="alt-why">${escapeHtml(alt.why)}</span>` : ""}
+          </div>
+        </li>`
+        )
+        .join("")}
+    </ul>`;
+}
+
+function renderAlternativesResult(productName, findings) {
+  const cleaned = String(productName || "").trim();
+  if (!cleaned) {
+    return `<p class="alt-empty">Enter a product name to see better options.</p>`;
+  }
+
+  const matched = findProductAlternatives(cleaned);
+  if (matched) {
+    return `
+      <div class="alt-verdict">
+        <p class="alt-product-bad">
+          <span class="alt-mark alt-mark-bad" aria-hidden="true">❌</span>
+          <span>${escapeHtml(matched.displayName)}</span>
+        </p>
+        <h4 class="alt-better-title">Better Alternatives</h4>
+        ${renderAlternativesList(matched.alternatives)}
+      </div>`;
+  }
+
+  const fallback = genericAlternativesFromFindings(findings);
+  return `
+    <div class="alt-verdict">
+      <p class="alt-product-bad">
+        <span class="alt-mark alt-mark-bad" aria-hidden="true">❌</span>
+        <span>${escapeHtml(cleaned)}</span>
+      </p>
+      <p class="alt-fallback-note">No exact product match — here are better swaps often used instead of ${escapeHtml(fallback.label)}:</p>
+      <h4 class="alt-better-title">Better Alternatives</h4>
+      ${renderAlternativesList(fallback.alternatives)}
+    </div>`;
+}
+
+function renderAlternativesSection(findings, preferredName = "") {
+  const value = escapeHtml(preferredName);
+  return `
+    <div class="alternatives-box" id="alternativesBox">
+      <h3 class="report-section-title">Healthy alternative suggestions</h3>
+      <p class="summary-lead">This product looks concerning. Tell us the product name and we’ll suggest healthier options.</p>
+      <div class="alt-form">
+        <label for="productNameInput">Product name</label>
+        <div class="alt-form-row">
+          <input
+            type="text"
+            id="productNameInput"
+            maxlength="80"
+            placeholder="e.g. Lay's Magic Masala"
+            value="${value}"
+            autocomplete="off"
+          >
+          <button type="button" class="text-analyze-btn alt-suggest-btn" id="suggestAltBtn">Suggest</button>
+        </div>
+      </div>
+      <div id="alternativesResult" class="alternatives-result" aria-live="polite"></div>
+    </div>`;
+}
+
+function bindAlternativesUI(findings) {
+  const input = document.getElementById("productNameInput");
+  const btn = document.getElementById("suggestAltBtn");
+  const out = document.getElementById("alternativesResult");
+  if (!input || !btn || !out) return;
+
+  const run = () => {
+    const name = input.value.trim();
+    lastProductName = name;
+    out.innerHTML = renderAlternativesResult(name, findings);
+  };
+
+  btn.addEventListener("click", run);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      run();
+    }
+  });
+
+  if (lastProductName) {
+    input.value = lastProductName;
+    run();
+  }
+}
+
+function verdictFor(findings, conditionAlerts = [], kidsFlags = []) {
+  if (kidsFlags.length > 0) {
+    return {
+      type: "result-danger",
+      label: "Not recommended below 10 years",
+      detail: `Kids Safety Mode flagged: ${kidsFlags.map((f) => f.label).join(", ")}.`,
+    };
+  }
   if (conditionAlerts.length > 0) {
     const condNames = [...new Set(conditionAlerts.map((a) => a.condition))].join(", ");
     return {
@@ -1302,7 +2129,10 @@ function renderIngredientCard(item, delayIndex) {
 function displayFindings(allFindings, extractedText, { fromHistory = false, source = "scan" } = {}) {
   const findings = withConditionAdvice(allFindings);
   const conditionAlerts = getConditionAlerts(findings);
-  const verdict = verdictFor(findings, conditionAlerts);
+  const kidsActive = kidsSafetyActive(extractedText);
+  const kidsFlags = kidsActive ? getKidsFlags(findings, extractedText) : [];
+  const autoKids = !kidsModeEnabled && !kidsProductCheck?.checked && isKidsProductText(extractedText);
+  const verdict = verdictFor(findings, conditionAlerts, kidsFlags);
   const high = findings.filter((f) => f.severity === "high").length;
   const moderate = findings.filter((f) => f.severity === "moderate").length;
   const low = findings.filter((f) => f.severity === "low").length;
@@ -1321,6 +2151,10 @@ function displayFindings(allFindings, extractedText, { fromHistory = false, sour
       </div>
     </div>
   `;
+
+  if (kidsActive) {
+    html += renderKidsSafetyBox(kidsFlags, { autoDetected: autoKids });
+  }
 
   if (conditionAlerts.length > 0) {
     html += `
@@ -1346,12 +2180,25 @@ function displayFindings(allFindings, extractedText, { fromHistory = false, sour
         <p>Nothing matched your selected conditions (${escapeHtml(activeConditions.map(conditionLabel).join(", "))}) on this label. Still not a full medical OK.</p>
       </div>`;
   } else if (findings.length === 0) {
+    const nutrition = parseNutritionText(extractedText || "");
     html += `
       <div class="empty-findings">
-        <h3>No harmful ingredients found</h3>
-        <p>Based on our curated list — absence of a flag is not a safety guarantee.</p>
+        <h3>Label read successfully</h3>
+        <p>No additives from our concern list matched on this edible product. That does not guarantee it is healthy — check sugar, salt, and portions.</p>
       </div>
     `;
+    if (nutrition) {
+      html += `
+        <div class="label-nutrition-box">
+          <h3 class="report-section-title">Nutrition read from label</h3>
+          <p class="summary-lead">Values detected on this package (may be per serving or per 100g — verify on pack):</p>
+          <ul class="label-nutrition-list">
+            <li><strong>Sugar</strong> ${nutrition.sugar}g</li>
+            <li><strong>Fat</strong> ${nutrition.fat}g</li>
+            <li><strong>Protein</strong> ${nutrition.protein}g</li>
+          </ul>
+        </div>`;
+    }
   }
 
   if (findings.length > 0) {
@@ -1377,6 +2224,7 @@ function displayFindings(allFindings, extractedText, { fromHistory = false, sour
             .join("")}
         </ol>
       </div>
+      ${renderAlternativesSection(findings, lastProductName)}
       <h3 class="report-section-title">Health risks by ingredient</h3>
     `;
 
@@ -1390,10 +2238,24 @@ function displayFindings(allFindings, extractedText, { fromHistory = false, sour
       }
       html += `</div>`;
     }
+
+    const nutritionWithFindings = parseNutritionText(extractedText || "");
+    if (nutritionWithFindings) {
+      html += `
+        <div class="label-nutrition-box">
+          <h3 class="report-section-title">Nutrition read from label</h3>
+          <ul class="label-nutrition-list">
+            <li><strong>Sugar</strong> ${nutritionWithFindings.sugar}g</li>
+            <li><strong>Fat</strong> ${nutritionWithFindings.fat}g</li>
+            <li><strong>Protein</strong> ${nutritionWithFindings.protein}g</li>
+          </ul>
+        </div>`;
+    }
   }
 
   const safeText = escapeHtml(extractedText || "(empty)");
   html += `
+    ${renderScanChatBox()}
     <details class="extracted-details">
       <summary>Text read from your photo</summary>
       <pre class="extracted-text">${safeText}</pre>
@@ -1402,6 +2264,9 @@ function displayFindings(allFindings, extractedText, { fromHistory = false, sour
   `;
 
   showResults(html, verdict.type);
+  lastChatContext = { findings, extractedText: extractedText || "" };
+  bindAlternativesUI(findings);
+  bindScanChatUI(findings);
 
   if (!fromHistory) {
     addHistoryEntry({ source, findings: allFindings, extractedText });
@@ -1460,11 +2325,11 @@ async function processImageFile(file) {
         }
       },
     });
-    const extractedText = (result.data.text || "").trim();
-    if (extractedText.length < 8) {
+    const extractedText = enhanceOcrText((result.data.text || "").trim());
+    if (extractedText.length < 5) {
       showResults(
         `<h3>Hard to read this photo</h3>
-         <p>We could not read enough text. Try brighter light, a flatter label, crop to Ingredients only, or paste the list below — then we will list every harmful ingredient and its health risks.</p>
+         <p>We could not read enough text from this edible product label. Try brighter light, a flatter package, crop to the Ingredients / Nutrition panel, or paste the text below.</p>
          <details class="extracted-details" open><summary>What we got</summary><pre class="extracted-text">${escapeHtml(extractedText || "(empty)")}</pre></details>`,
         "result-error"
       );
@@ -1472,7 +2337,7 @@ async function processImageFile(file) {
       return;
     }
 
-    if (progressLabel) progressLabel.textContent = "Checking for harmful ingredients...";
+    if (progressLabel) progressLabel.textContent = "Checking ingredients & nutrition...";
     const findings = findIngredients(extractedText);
     displayFindings(findings, extractedText, { source: "photo" });
   } catch (error) {
@@ -1501,7 +2366,6 @@ yesFoodBtn.addEventListener("click", showScanStep);
 noFoodBtn.addEventListener("click", showNotFoodStep);
 backFromScanBtn.addEventListener("click", showFoodQuestion);
 backFromNotFoodBtn.addEventListener("click", showFoodQuestion);
-
 scanBtn.addEventListener("click", () => imageInput.click());
 imageInput.addEventListener("change", () => {
   const file = imageInput.files?.[0];
@@ -1558,4 +2422,11 @@ if (dropZone) {
 }
 
 renderConditions();
+renderKidsMode();
 renderHistory();
+
+kidsModeToggle?.addEventListener("change", () => {
+  kidsModeEnabled = Boolean(kidsModeToggle.checked);
+  saveKidsMode(kidsModeEnabled);
+  updateKidsModeNote();
+});

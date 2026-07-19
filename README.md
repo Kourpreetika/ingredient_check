@@ -13,13 +13,16 @@ You can also set **health conditions** (diabetes, high blood pressure, heart dis
 ## Features
 
 - **Food check** — Confirms the item is food before scanning
-- **OCR label scan** — Reads ingredients from photos
+- **OCR label scan** — Reads ingredient & nutrition text from photos of any edible packaged product
 - **Drag & drop + camera** — Drop an image, pick a file, or use the phone camera
 - **Paste text fallback** — Analyze a pasted ingredients list when OCR struggles
 - **Harmful-ingredient report** — Lists every matched additive of concern
 - **Health risks** — For each finding: risks if consumed regularly, severity, and who should be careful
 - **Smarter matching** — Aliases collapsed (e.g. MSG / E621 / monosodium glutamate → one result); nested false matches reduced
 - **Health conditions** — Personalized “not recommended” alerts (saved on this device)
+- **Healthy alternatives** — Enter the product name after an unhealthy scan for better swaps (e.g. Lay’s Magic Masala → Too Yumm, roasted makhana, baked chips)
+- **Kids Safety Mode** — When enabled (or the product is for children): flags Artificial Color, High Sugar, and Caffeine, with “Not recommended below 10 years”
+- **AI chatbot** — After a scan, ask questions like “Can I eat this if I have PCOS?” and get an answer tied to that product’s findings
 - **Scan history** — Recent checks on this device; tap to restore a report
 - **No backend** — Runs fully in the browser (no build step)
 
@@ -83,8 +86,13 @@ Match aliases (longest first) · collapse duplicates
        ↓
 Build report: harmful list + risks + condition warnings
        ↓
+Ask product name → healthy alternative suggestions (if concerns found)
+       ↓
 Save scan to history on this device
 ```
+
+
+With a concerning scan, enter e.g. **Lay's Magic Masala** to see swaps like Too Yumm, roasted makhana, and baked chips. Unknown products still get category-based suggestions.
 
 Ingredient entries in `javascript.js` look like:
 
