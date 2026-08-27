@@ -3,1748 +3,539 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Scan food ingredient labels with OCR and flag additives of concern.">
-    <title>Ingredient_Check</title>
+    <meta name="description" content="Photograph a food label and get a plain-language report of the additives inside, matched against your own health conditions.">
+    <meta name="theme-color" content="#fbf8f3">
+    <title>Ingredient_Check — read the label before you buy it</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=New+Rocker&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --bg: #06110c;
-            --bg-deep: #030806;
-            --surface: rgba(10, 22, 16, 0.88);
-            --surface-2: rgba(14, 28, 20, 0.92);
-            --panel: rgba(8, 20, 14, 0.86);
-            --panel-border: rgba(110, 231, 160, 0.22);
-            --line: rgba(232, 245, 236, 0.12);
-            --text: #eef8f1;
-            --muted: rgba(210, 228, 216, 0.72);
-            --accent: #5dff9a;
-            --accent-strong: #3ef085;
-            --accent-ink: #042411;
-            --accent-dim: rgba(93, 255, 154, 0.14);
-            --accent-glow: rgba(93, 255, 154, 0.28);
-            --danger: #ff6f7a;
-            --danger-soft: rgba(255, 111, 122, 0.14);
-            --warn: #ffc15a;
-            --warn-soft: rgba(255, 193, 90, 0.14);
-            --safe: #5dff9a;
-            --safe-soft: rgba(93, 255, 154, 0.12);
-            --radius: 18px;
-            --radius-sm: 12px;
-            --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-            --ease: cubic-bezier(0.22, 1, 0.36, 1);
-            --font-display: "New Rocker", cursive;
-            --font-body: "Sora", sans-serif;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html { scroll-behavior: smooth; }
-
-        ::selection {
-            background: rgba(93, 255, 154, 0.35);
-            color: #04150c;
-        }
-
-        :focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 3px;
-        }
-
-        button,
-        [role="button"],
-        label.condition-row,
-        summary {
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-18px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(18px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.025); }
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 0% center; }
-            100% { background-position: 200% center; }
-        }
-
-        @keyframes lineExpand {
-            from { transform: scaleX(0); opacity: 0; }
-            to { transform: scaleX(1); opacity: 1; }
-        }
-
-        @keyframes taglineFade {
-            from { opacity: 0; letter-spacing: 0.35em; }
-            to { opacity: 1; letter-spacing: 0.28em; }
-        }
-
-        @keyframes softFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-        body {
-            background:
-                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(93, 255, 154, 0.12), transparent 55%),
-                var(--bg-deep);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            font-family: var(--font-body);
-            color: var(--text);
-            overflow-x: hidden;
-            position: relative;
-            padding: 118px 16px 56px;
-            line-height: 1.5;
-        }
-
-        .video-bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .video-bg video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            pointer-events: none;
-            filter: saturate(0.85) brightness(0.72);
-        }
-
-        .video-overlay {
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(ellipse at 50% 0%, rgba(93, 255, 154, 0.16), transparent 50%),
-                linear-gradient(180deg, rgba(3, 10, 7, 0.55) 0%, rgba(3, 8, 6, 0.78) 55%, rgba(3, 8, 6, 0.9) 100%);
-            pointer-events: none;
-        }
-
-        .app-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 3;
-            padding: 18px 20px 14px;
-            text-align: center;
-            background: linear-gradient(
-                to bottom,
-                rgba(3, 8, 6, 0.92) 0%,
-                rgba(3, 8, 6, 0.55) 70%,
-                transparent 100%
-            );
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            animation: fadeInDown 0.7s var(--ease) both;
-            pointer-events: none;
-        }
-
-        .app-name {
-            font-family: var(--font-display);
-            font-size: clamp(30px, 5.4vw, 48px);
-            font-weight: 400;
-            line-height: 1.05;
-            margin: 0;
-        }
-
-        .logo-word {
-            background: linear-gradient(120deg, #fff 0%, #e9fff0 40%, #fff 55%, #bffff0 75%, #fff 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 5s linear infinite;
-        }
-
-        .logo-underscore {
-            color: var(--accent);
-            -webkit-text-fill-color: var(--accent);
-            margin: 0 2px;
-        }
-
-        .logo-check {
-            background: linear-gradient(120deg, var(--accent), #b8ffd6, var(--accent-strong));
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 3.5s linear infinite;
-        }
-
-        .app-tagline {
-            margin: 8px 0 0;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.28em;
-            color: rgba(232, 245, 236, 0.58);
-            animation: taglineFade 1s var(--ease) 0.25s both;
-        }
-
-        .logo-underline {
-            height: 2px;
-            width: min(220px, 55vw);
-            margin: 12px auto 0;
-            border-radius: 999px;
-            background: linear-gradient(90deg, transparent, var(--accent) 25%, #fff 50%, var(--accent) 75%, transparent);
-            transform-origin: center;
-            animation: lineExpand 0.7s var(--ease) 0.35s both;
-            box-shadow: 0 0 16px var(--accent-glow);
-        }
-
-        .layout {
-            position: relative;
-            z-index: 2;
-            width: min(980px, 100%);
-            display: grid;
-            gap: 16px;
-            animation: fadeInUp 0.75s var(--ease) 0.1s both;
-        }
-
-        .container {
-            text-align: center;
-            padding: clamp(26px, 4vw, 42px);
-            border: 1px solid var(--panel-border);
-            border-radius: var(--radius);
-            background:
-                linear-gradient(165deg, rgba(93, 255, 154, 0.08), transparent 42%),
-                var(--panel);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        }
-
-        .side-panels {
-            display: grid;
-            gap: 14px;
-        }
-
-        @media (min-width: 900px) {
-            .layout {
-                grid-template-columns: 1.45fr 0.95fr;
-                align-items: start;
-                gap: 18px;
-            }
-            .side-panels {
-                position: sticky;
-                top: 118px;
-            }
-        }
-
-        .panel {
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            background:
-                linear-gradient(180deg, rgba(93, 255, 154, 0.05), transparent 40%),
-                var(--surface);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            padding: 18px;
-            text-align: left;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
-            transition: border-color 0.25s var(--ease), transform 0.25s var(--ease);
-        }
-
-        .panel:hover {
-            border-color: rgba(110, 231, 160, 0.28);
-        }
-
-        .panel h3 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            letter-spacing: 0.4px;
-            margin-bottom: 4px;
-            color: var(--text);
-        }
-
-        .panel-sub {
-            color: var(--muted);
-            font-size: 0.8rem;
-            margin-bottom: 14px;
-            line-height: 1.4;
-        }
-
-        h1.section-title,
-        h1.section-title-sm {
-            font-family: var(--font-display);
-            font-weight: 400;
-            line-height: 1.08;
-            margin: 0 0 8px;
-        }
-
-        .section-title { font-size: clamp(34px, 6.5vw, 50px); }
-        .section-title-sm { font-size: clamp(26px, 5vw, 38px); }
-
-        .section-underline {
-            height: 2px;
-            width: min(150px, 40vw);
-            margin: 0 auto 24px;
-            border-radius: 999px;
-            background: linear-gradient(90deg, transparent, var(--accent) 25%, #fff 50%, var(--accent) 75%, transparent);
-            box-shadow: 0 0 14px var(--accent-glow);
-        }
-
-        .question-text {
-            color: rgba(232, 245, 236, 0.88);
-            font-size: 1.05rem;
-            margin: 0 auto 28px;
-            line-height: 1.55;
-            max-width: 34ch;
-        }
-
-        .choice-btns {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            max-width: 420px;
-            margin: 0 auto;
-        }
-
-        @media (min-width: 520px) {
-            .choice-btns {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        .choice-btn,
-        .scan-btn,
-        .back-btn,
-        .ghost-btn,
-        .text-analyze-btn,
-        .panel-btn,
-        .preview-clear {
-            font-family: var(--font-body);
-            border: none;
-            cursor: pointer;
-            transition:
-                transform 0.2s var(--ease),
-                background 0.2s var(--ease),
-                box-shadow 0.2s var(--ease),
-                border-color 0.2s var(--ease),
-                color 0.2s var(--ease),
-                opacity 0.2s var(--ease);
-        }
-
-        .choice-btn {
-            min-height: 52px;
-            padding: 14px 20px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            border-radius: var(--radius-sm);
-        }
-
-        .choice-yes {
-            background: linear-gradient(180deg, #7dffb0 0%, var(--accent) 100%);
-            color: var(--accent-ink);
-            box-shadow: 0 8px 24px rgba(93, 255, 154, 0.22);
-        }
-
-        .choice-yes:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(93, 255, 154, 0.35);
-            background: linear-gradient(180deg, #95ffc0 0%, var(--accent-strong) 100%);
-        }
-
-        .choice-yes:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .choice-no {
-            background: linear-gradient(180deg, #ff8d95 0%, var(--danger) 100%);
-            color: #fff;
-            box-shadow: 0 8px 24px rgba(255, 111, 122, 0.22);
-        }
-
-        .choice-no:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(255, 111, 122, 0.35);
-        }
-
-        .choice-no:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .scan-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 16px;
-        }
-
-        .scan-btn,
-        .text-analyze-btn {
-            background: linear-gradient(180deg, #7dffb0 0%, var(--accent) 100%);
-            color: var(--accent-ink);
-            min-height: 48px;
-            padding: 12px 24px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            border-radius: var(--radius-sm);
-            box-shadow: 0 8px 22px rgba(93, 255, 154, 0.2);
-        }
-
-        .scan-btn:hover:not(:disabled),
-        .text-analyze-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(93, 255, 154, 0.35);
-        }
-
-        .scan-btn:active:not(:disabled),
-        .text-analyze-btn:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .scan-btn:disabled {
-            opacity: 0.72;
-            cursor: wait;
-            transform: none;
-        }
-
-        .scan-btn.scanning {
-            animation: pulse 1.2s ease-in-out infinite;
-        }
-
-        .ghost-btn,
-        .back-btn {
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--text);
-            border: 1px solid rgba(232, 245, 236, 0.22);
-            min-height: 48px;
-            padding: 12px 18px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            border-radius: var(--radius-sm);
-        }
-
-        .ghost-btn:hover,
-        .back-btn:hover {
-            background: rgba(93, 255, 154, 0.1);
-            border-color: rgba(93, 255, 154, 0.45);
-            color: #d9ffe8;
-            transform: translateY(-1px);
-        }
-
-        .ghost-btn:active,
-        .back-btn:active {
-            transform: translateY(0) scale(0.98);
-        }
-
-        .drop-zone {
-            margin-top: 4px;
-            border: 1.5px dashed rgba(93, 255, 154, 0.4);
-            border-radius: 16px;
-            padding: 30px 20px;
-            background:
-                radial-gradient(circle at 50% 0%, rgba(93, 255, 154, 0.12), transparent 60%),
-                rgba(93, 255, 154, 0.05);
-            cursor: pointer;
-            transition:
-                border-color 0.25s var(--ease),
-                background 0.25s var(--ease),
-                transform 0.25s var(--ease),
-                box-shadow 0.25s var(--ease);
-        }
-
-        .drop-icon {
-            width: 56px;
-            height: 56px;
-            margin: 0 auto 14px;
-            border-radius: 16px;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(145deg, rgba(93, 255, 154, 0.22), rgba(93, 255, 154, 0.06));
-            border: 1px solid rgba(93, 255, 154, 0.35);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-            animation: softFloat 3.5s ease-in-out infinite;
-            color: var(--accent);
-        }
-
-        .drop-icon svg {
-            width: 26px;
-            height: 26px;
-            display: block;
-        }
-
-        .drop-zone:hover,
-        .drop-zone:focus-visible,
-        .drop-zone.drag-over {
-            border-color: var(--accent);
-            border-style: solid;
-            background:
-                radial-gradient(circle at 50% 0%, rgba(93, 255, 154, 0.22), transparent 60%),
-                rgba(93, 255, 154, 0.1);
-            box-shadow: 0 0 0 4px rgba(93, 255, 154, 0.12), 0 16px 36px rgba(0, 0, 0, 0.28);
-            transform: translateY(-2px);
-            outline: none;
-        }
-
-        .drop-zone.drag-over {
-            transform: scale(1.015);
-        }
-
-        .drop-zone p {
-            color: var(--muted);
-            font-size: 0.9rem;
-            line-height: 1.5;
-            max-width: 38ch;
-            margin: 0 auto;
-        }
-
-        .drop-zone strong {
-            color: var(--text);
-            display: block;
-            margin-bottom: 8px;
-            font-size: 1.05rem;
-            font-weight: 700;
-        }
-
-        .preview-wrap {
-            margin-top: 18px;
-            position: relative;
-            display: inline-block;
-            max-width: 100%;
-        }
-
-        .preview-wrap img {
-            display: block;
-            max-width: min(380px, 100%);
-            max-height: 230px;
-            object-fit: contain;
-            border-radius: 14px;
-            border: 1px solid rgba(93, 255, 154, 0.28);
-            background: #06110c;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-        }
-
-        .preview-clear {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(4, 14, 9, 0.82);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.28);
-            border-radius: 999px;
-            padding: 7px 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            backdrop-filter: blur(6px);
-        }
-
-        .preview-clear:hover {
-            background: rgba(255, 111, 122, 0.25);
-            border-color: rgba(255, 111, 122, 0.55);
-        }
-
-        .loader {
-            width: 42px;
-            height: 42px;
-            border: 3px solid rgba(255, 255, 255, 0.12);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            margin: 20px auto 10px;
-            animation: spin 0.75s linear infinite;
-        }
-
-        .progress-label {
-            color: var(--muted);
-            font-size: 0.88rem;
-            margin-bottom: 8px;
-        }
-
-        .hidden { display: none !important; }
-
-        .paste-panel {
-            margin-top: 16px;
-            text-align: left;
-            border: 1px solid rgba(93, 255, 154, 0.2);
-            border-radius: 14px;
-            padding: 16px;
-            background: rgba(4, 14, 9, 0.55);
-            animation: fadeInUp 0.3s var(--ease);
-        }
-
-        .paste-panel label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: rgba(232, 245, 236, 0.8);
-            margin-bottom: 8px;
-        }
-
-        .paste-panel textarea {
-            width: 100%;
-            min-height: 120px;
-            resize: vertical;
-            border-radius: var(--radius-sm);
-            border: 1px solid rgba(232, 245, 236, 0.16);
-            background: rgba(0, 0, 0, 0.4);
-            color: var(--text);
-            font-family: var(--font-body);
-            font-size: 0.9rem;
-            padding: 12px 14px;
-            line-height: 1.45;
-            transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
-        }
-
-        .paste-panel textarea:focus {
-            outline: none;
-            border-color: rgba(93, 255, 154, 0.55);
-            box-shadow: 0 0 0 3px rgba(93, 255, 154, 0.18);
-        }
-
-        .text-analyze-btn { margin-top: 12px; }
-
-        #resultBox {
-            color: var(--text);
-            margin-top: 22px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            text-align: left;
-            background: rgba(4, 12, 8, 0.62);
-            padding: 18px;
-            border-radius: 16px;
-            opacity: 0;
-            transform: translateY(12px);
-            transition: opacity 0.35s var(--ease), transform 0.35s var(--ease), border-color 0.25s ease, box-shadow 0.25s ease;
-            border: 1px solid transparent;
-            border-left-width: 4px;
-        }
-
-        #resultBox.result-show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        #resultBox.result-danger {
-            border-color: rgba(255, 111, 122, 0.45);
-            border-left-color: var(--danger);
-            background: linear-gradient(90deg, rgba(255, 111, 122, 0.1), rgba(4, 12, 8, 0.62) 28%);
-            box-shadow: 0 10px 28px rgba(255, 80, 90, 0.12);
-        }
-
-        #resultBox.result-safe {
-            border-color: rgba(93, 255, 154, 0.4);
-            border-left-color: var(--safe);
-            background: linear-gradient(90deg, var(--safe-soft), rgba(4, 12, 8, 0.62) 28%);
-        }
-
-        #resultBox.result-mixed {
-            border-color: rgba(255, 193, 90, 0.45);
-            border-left-color: var(--warn);
-            background: linear-gradient(90deg, var(--warn-soft), rgba(4, 12, 8, 0.62) 28%);
-        }
-
-        #resultBox.result-error {
-            border-color: rgba(255, 170, 68, 0.5);
-            border-left-color: #ffaa44;
-            background: linear-gradient(90deg, rgba(255, 170, 68, 0.12), rgba(4, 12, 8, 0.62) 28%);
-        }
-
-        .report-header {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .verdict-label {
-            font-family: var(--font-display);
-            font-size: 1.45rem;
-            letter-spacing: 0.4px;
-            margin-bottom: 6px;
-        }
-
-        .verdict-detail { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
-
-        .history-replay-note {
-            margin-top: 8px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        .score-pills {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .pill {
-            font-size: 0.76rem;
-            padding: 7px 11px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            font-weight: 500;
-        }
-
-        .pill strong { margin-right: 3px; }
-        .pill-high { border-color: rgba(255, 111, 122, 0.45); color: #ffb8be; background: var(--danger-soft); }
-        .pill-mod { border-color: rgba(255, 193, 90, 0.45); color: #ffe0a8; background: var(--warn-soft); }
-        .pill-low { border-color: rgba(93, 255, 154, 0.4); color: #c9ffe0; background: var(--safe-soft); }
-
-        .report-section-title {
-            font-family: var(--font-display);
-            font-size: 1.15rem;
-            margin: 10px 0 12px;
-        }
-
-        .cat-group { margin-bottom: 14px; }
-        .cat-title {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            color: var(--muted);
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .ingredient-item {
-            opacity: 0;
-            transform: translateY(8px);
-            animation: fadeInUp 0.4s var(--ease) forwards;
-            margin-bottom: 10px;
-            padding: 14px;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.035);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.2s var(--ease);
-        }
-
-        .ingredient-item:hover {
-            border-color: rgba(93, 255, 154, 0.28);
-            background: rgba(93, 255, 154, 0.05);
-            transform: translateY(-1px);
-        }
-
-        .ingredient-top {
-            display: flex;
-            gap: 10px;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 6px;
-        }
-
-        .ingredient-item h4 {
-            color: #fff;
-            font-size: 1rem;
-            font-weight: 650;
-        }
-
-        .ingredient-note { color: rgba(232, 245, 236, 0.82); font-size: 0.88rem; }
-        .matched-as {
-            margin-top: 8px;
-            font-size: 0.74rem;
-            color: var(--muted);
-        }
-
-        .sev-badge {
-            flex-shrink: 0;
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            padding: 5px 9px;
-            border-radius: 999px;
-        }
-
-        .sev-high { background: var(--danger-soft); color: #ff9da5; border: 1px solid rgba(255, 111, 122, 0.3); }
-        .sev-moderate { background: var(--warn-soft); color: #ffd08a; border: 1px solid rgba(255, 193, 90, 0.3); }
-        .sev-low { background: var(--safe-soft); color: #a8ffcc; border: 1px solid rgba(93, 255, 154, 0.28); }
-
-        .extracted-details {
-            margin-top: 16px;
-            border-top: 1px solid var(--line);
-            padding-top: 12px;
-        }
-
-        .extracted-details summary {
-            cursor: pointer;
-            color: rgba(210, 228, 216, 0.85);
-            font-size: 0.88rem;
-            font-weight: 600;
-            user-select: none;
-            padding: 6px 0;
-            transition: color 0.2s ease;
-        }
-
-        .extracted-details summary:hover {
-            color: var(--accent);
-        }
-
-        .extracted-text {
-            margin-top: 10px;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-family: var(--font-body);
-            font-size: 0.82rem;
-            color: #cfd6d1;
-            background: rgba(0, 0, 0, 0.35);
-            padding: 12px;
-            border-radius: 10px;
-            max-height: 200px;
-            overflow: auto;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .disclaimer-inline,
-        .not-food-msg {
-            color: var(--muted);
-            font-size: 0.8rem;
-            line-height: 1.55;
-            margin-top: 14px;
-        }
-
-        .not-food-msg {
-            font-size: 0.95rem;
-            margin: 0 auto 22px;
-            max-width: 42ch;
-        }
-
-        .condition-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 2px;
-        }
-
-        .condition-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 12px 13px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            cursor: pointer;
-            transition:
-                border-color 0.2s var(--ease),
-                background 0.2s var(--ease),
-                transform 0.2s var(--ease),
-                box-shadow 0.2s var(--ease);
-            font-size: 0.88rem;
-            line-height: 1.35;
-        }
-
-        .condition-row:hover {
-            border-color: rgba(93, 255, 154, 0.35);
-            background: rgba(93, 255, 154, 0.07);
-            transform: translateX(2px);
-        }
-
-        .condition-row:has(input:checked) {
-            border-color: rgba(93, 255, 154, 0.55);
-            background: linear-gradient(90deg, rgba(93, 255, 154, 0.16), rgba(93, 255, 154, 0.05));
-            box-shadow: inset 3px 0 0 var(--accent);
-        }
-
-        .condition-row input {
-            margin-top: 3px;
-            width: 1.05rem;
-            height: 1.05rem;
-            accent-color: var(--accent);
-            flex-shrink: 0;
-            cursor: pointer;
-        }
-
-        .condition-row strong {
-            display: block;
-            font-weight: 650;
-            margin-bottom: 2px;
-            color: var(--text);
-        }
-
-        .condition-row span span {
-            color: var(--muted);
-            font-size: 0.76rem;
-        }
-
-        .condition-active-note {
-            margin-top: 12px;
-            font-size: 0.78rem;
-            color: var(--accent);
-            line-height: 1.45;
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: rgba(93, 255, 154, 0.08);
-            border: 1px solid rgba(93, 255, 154, 0.18);
-        }
-
-        .condition-alert-box {
-            margin-bottom: 16px;
-            padding: 16px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, rgba(255, 111, 122, 0.16), rgba(255, 111, 122, 0.06));
-            border: 1px solid rgba(255, 111, 122, 0.4);
-            box-shadow: 0 10px 24px rgba(255, 80, 90, 0.1);
-        }
-
-        .condition-alert-box h3 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            color: #ffb0b6;
-            margin-bottom: 6px;
-        }
-
-        .condition-alert-box > p {
-            color: #f0c8cb;
-            font-size: 0.88rem;
-            margin-bottom: 12px;
-            line-height: 1.45;
-        }
-
-        .condition-alert-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .condition-alert-list li {
-            padding: 12px;
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.32);
-            font-size: 0.88rem;
-            line-height: 1.4;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .condition-alert-list strong {
-            display: block;
-            margin-bottom: 4px;
-            color: #fff;
-        }
-
-        .kids-mode-row {
-            margin-bottom: 0;
-        }
-
-        .kids-product-check {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 14px 0 4px;
-            padding: 12px 14px;
-            border-radius: 12px;
-            background: rgba(255, 193, 90, 0.08);
-            border: 1px solid rgba(255, 193, 90, 0.28);
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: rgba(232, 245, 236, 0.92);
-            text-align: left;
-            transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
-        }
-
-        .kids-product-check:hover {
-            background: rgba(255, 193, 90, 0.12);
-            border-color: rgba(255, 193, 90, 0.45);
-        }
-
-        .kids-product-check input {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--warn);
-            flex-shrink: 0;
-        }
-
-        .kids-safety-box {
-            margin-bottom: 16px;
-            padding: 16px;
-            border-radius: 14px;
-            background: linear-gradient(145deg, rgba(255, 193, 90, 0.14), rgba(255, 111, 122, 0.08));
-            border: 1px solid rgba(255, 193, 90, 0.4);
-            box-shadow: 0 10px 24px rgba(255, 160, 60, 0.1);
-            animation: fadeInUp 0.35s var(--ease);
-        }
-
-        .kids-safety-box.is-clear {
-            background: linear-gradient(145deg, rgba(93, 255, 154, 0.1), rgba(93, 255, 154, 0.03));
-            border-color: rgba(93, 255, 154, 0.32);
-            box-shadow: none;
-        }
-
-        .kids-safety-box h3 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            color: #ffe0a8;
-            margin-bottom: 6px;
-        }
-
-        .kids-safety-box.is-clear h3 {
-            color: var(--accent);
-        }
-
-        .kids-safety-lead {
-            color: var(--muted);
-            font-size: 0.88rem;
-            margin-bottom: 12px;
-            line-height: 1.45;
-        }
-
-        .kids-contains-label {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
-
-        .kids-flag-list {
-            list-style: none;
-            margin: 0 0 14px;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .kids-flag-list li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 11px 12px;
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.32);
-            border: 1px solid rgba(255, 193, 90, 0.22);
-            font-weight: 650;
-            font-size: 0.95rem;
-        }
-
-        .kids-flag-icon {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 700;
-            background: rgba(255, 111, 122, 0.25);
-            color: #ffb8be;
-            flex-shrink: 0;
-        }
-
-        .kids-age-warn {
-            padding: 12px 14px;
-            border-radius: 10px;
-            background: rgba(255, 111, 122, 0.16);
-            border: 1px solid rgba(255, 111, 122, 0.4);
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            letter-spacing: 0.3px;
-            color: #ffb8be;
-            text-align: center;
-        }
-
-        .label-nutrition-box {
-            margin-bottom: 16px;
-            padding: 15px;
-            border-radius: 14px;
-            background: linear-gradient(145deg, rgba(93, 255, 154, 0.08), rgba(93, 255, 154, 0.02));
-            border: 1px solid rgba(93, 255, 154, 0.22);
-        }
-
-        .label-nutrition-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .label-nutrition-list li {
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.28);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            font-size: 0.9rem;
-            min-width: 110px;
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        .scan-chat {
-            margin: 18px 0;
-            padding: 16px;
-            border-radius: 14px;
-            background: linear-gradient(145deg, rgba(93, 255, 154, 0.08), rgba(4, 14, 9, 0.55));
-            border: 1px solid rgba(93, 255, 154, 0.28);
-            animation: fadeInUp 0.35s var(--ease);
-        }
-
-        .scan-chat-head .report-section-title {
-            margin-top: 0;
-        }
-
-        .chat-messages {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 280px;
-            overflow-y: auto;
-            padding: 4px 2px 8px;
-            margin-bottom: 12px;
-        }
-
-        .chat-bubble {
-            max-width: 92%;
-            padding: 11px 13px;
-            border-radius: 14px;
-            font-size: 0.88rem;
-            line-height: 1.45;
-            animation: fadeInUp 0.25s var(--ease);
-        }
-
-        .chat-bubble.bot {
-            align-self: flex-start;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(93, 255, 154, 0.18);
-            color: var(--text);
-            border-bottom-left-radius: 4px;
-        }
-
-        .chat-bubble.user {
-            align-self: flex-end;
-            background: rgba(93, 255, 154, 0.18);
-            border: 1px solid rgba(93, 255, 154, 0.4);
-            color: #e8fff0;
-            border-bottom-right-radius: 4px;
-        }
-
-        .chat-bubble.chat-typing {
-            color: var(--muted);
-            font-style: italic;
-        }
-
-        .chat-reason-list {
-            margin: 8px 0 10px;
-            padding-left: 1.15rem;
-        }
-
-        .chat-reason-list li {
-            margin-bottom: 4px;
-        }
-
-        .chat-suggestions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .chat-chip {
-            font-family: var(--font-body);
-            font-size: 0.78rem;
-            font-weight: 600;
-            padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid rgba(93, 255, 154, 0.3);
-            background: rgba(93, 255, 154, 0.08);
-            color: #c9ffe0;
-            cursor: pointer;
-            transition: background 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
-        }
-
-        .chat-chip:hover {
-            background: rgba(93, 255, 154, 0.16);
-            border-color: rgba(93, 255, 154, 0.55);
-            transform: translateY(-1px);
-        }
-
-        .chat-form {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: stretch;
-        }
-
-        .chat-form input {
-            flex: 1;
-            min-width: 160px;
-            border-radius: var(--radius-sm);
-            border: 1px solid rgba(232, 245, 236, 0.16);
-            background: rgba(0, 0, 0, 0.4);
-            color: var(--text);
-            font-family: var(--font-body);
-            font-size: 0.9rem;
-            padding: 12px 14px;
-            transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
-        }
-
-        .chat-form input:focus {
-            outline: none;
-            border-color: rgba(93, 255, 154, 0.55);
-            box-shadow: 0 0 0 3px rgba(93, 255, 154, 0.18);
-        }
-
-        .chat-send-btn {
-            margin-top: 0;
-            white-space: nowrap;
-            padding: 12px 18px;
-        }
-
-        .condition-tag {
-            display: inline-block;
-            margin-top: 8px;
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            padding: 5px 9px;
-            border-radius: 999px;
-            background: rgba(255, 111, 122, 0.2);
-            color: #ffb8be;
-            border: 1px solid rgba(255, 111, 122, 0.3);
-        }
-
-        .ingredient-item.has-condition-warn {
-            border-color: rgba(255, 111, 122, 0.45);
-            background: rgba(255, 111, 122, 0.07);
-        }
-
-        .panel-head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .panel-btn {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            border-radius: 999px;
-            padding: 7px 12px;
-            font-size: 0.74rem;
-            font-weight: 600;
-        }
-
-        .panel-btn:hover {
-            background: rgba(255, 111, 122, 0.16);
-            border-color: rgba(255, 111, 122, 0.45);
-            color: #ffd0d4;
-        }
-
-        .history-toolbar {
-            display: flex;
-            justify-content: flex-end;
-            margin: -4px 0 10px;
-        }
-
-        .history-item {
-            width: 100%;
-            text-align: left;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            padding: 12px 13px;
-            color: inherit;
-            cursor: pointer;
-            margin-bottom: 8px;
-            font-family: var(--font-body);
-            transition:
-                border-color 0.2s var(--ease),
-                background 0.2s var(--ease),
-                transform 0.2s var(--ease),
-                box-shadow 0.2s var(--ease);
-        }
-
-        .history-item:hover {
-            border-color: rgba(93, 255, 154, 0.4);
-            background: rgba(93, 255, 154, 0.08);
-            transform: translateY(-1px);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
-        }
-
-        .history-item:active {
-            transform: translateY(0) scale(0.99);
-        }
-
-        .history-meta {
-            display: block;
-            font-size: 0.72rem;
-            color: var(--muted);
-            margin-bottom: 3px;
-        }
-
-        .history-summary {
-            display: block;
-            font-size: 0.88rem;
-            font-weight: 650;
-        }
-
-        .history-tags {
-            display: block;
-            margin-top: 4px;
-            font-size: 0.75rem;
-            color: rgba(197, 206, 200, 0.9);
-        }
-
-        .history-empty {
-            color: var(--muted);
-            font-size: 0.85rem;
-            line-height: 1.45;
-        }
-
-        .empty-findings h3 {
-            font-family: var(--font-display);
-            margin-bottom: 6px;
-        }
-
-        .empty-findings p { color: var(--muted); font-size: 0.9rem; }
-
-        .harmful-summary {
-            margin-bottom: 18px;
-            padding: 15px;
-            border-radius: 14px;
-            background: linear-gradient(145deg, rgba(255, 111, 122, 0.12), rgba(255, 111, 122, 0.04));
-            border: 1px solid rgba(255, 111, 122, 0.28);
-        }
-
-        .alternatives-box {
-            margin-bottom: 18px;
-            padding: 15px;
-            border-radius: 14px;
-            background: linear-gradient(145deg, rgba(93, 255, 154, 0.1), rgba(93, 255, 154, 0.03));
-            border: 1px solid rgba(93, 255, 154, 0.28);
-            animation: fadeInUp 0.35s var(--ease);
-        }
-
-        .alt-form {
-            margin-top: 4px;
-        }
-
-        .alt-form label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: rgba(232, 245, 236, 0.8);
-            margin-bottom: 8px;
-        }
-
-        .alt-form-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: stretch;
-        }
-
-        .alt-form-row input {
-            flex: 1;
-            min-width: 180px;
-            border-radius: var(--radius-sm);
-            border: 1px solid rgba(232, 245, 236, 0.16);
-            background: rgba(0, 0, 0, 0.4);
-            color: var(--text);
-            font-family: var(--font-body);
-            font-size: 0.92rem;
-            padding: 12px 14px;
-            transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
-        }
-
-        .alt-form-row input:focus {
-            outline: none;
-            border-color: rgba(93, 255, 154, 0.55);
-            box-shadow: 0 0 0 3px rgba(93, 255, 154, 0.18);
-        }
-
-        .alt-suggest-btn {
-            margin-top: 0;
-            white-space: nowrap;
-            padding: 12px 18px;
-        }
-
-        .alternatives-result {
-            margin-top: 14px;
-        }
-
-        .alt-empty,
-        .alt-fallback-note {
-            color: var(--muted);
-            font-size: 0.88rem;
-            line-height: 1.45;
-            margin-bottom: 10px;
-        }
-
-        .alt-product-bad {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            font-family: var(--font-display);
-            font-size: 1.15rem;
-            letter-spacing: 0.3px;
-            margin-bottom: 12px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: rgba(255, 111, 122, 0.1);
-            border: 1px solid rgba(255, 111, 122, 0.28);
-            color: #ffb8be;
-        }
-
-        .alt-better-title {
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            margin: 4px 0 10px;
-            color: var(--accent);
-        }
-
-        .alt-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .alt-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 11px 12px;
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.28);
-            border: 1px solid rgba(93, 255, 154, 0.16);
-            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-        }
-
-        .alt-list li:hover {
-            background: rgba(93, 255, 154, 0.08);
-            border-color: rgba(93, 255, 154, 0.35);
-            transform: translateY(-1px);
-        }
-
-        .alt-mark {
-            flex-shrink: 0;
-            width: 1.4rem;
-            text-align: center;
-            font-size: 1rem;
-            line-height: 1.4;
-            font-weight: 700;
-        }
-
-        .alt-mark-bad { color: var(--danger); }
-        .alt-mark-good { color: var(--accent); }
-
-        .alt-copy {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            min-width: 0;
-        }
-
-        .alt-copy strong {
-            font-size: 0.95rem;
-            font-weight: 650;
-            color: var(--text);
-        }
-
-        .alt-why {
-            font-size: 0.82rem;
-            color: var(--muted);
-            line-height: 1.4;
-        }
-
-        .summary-lead {
-            color: var(--muted);
-            font-size: 0.88rem;
-            margin: -2px 0 12px;
-            line-height: 1.45;
-        }
-
-        .harmful-name-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin: 0;
-            padding: 0;
-        }
-
-        .harmful-name-list li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.28);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: background 0.2s ease, border-color 0.2s ease;
-        }
-
-        .harmful-name-list li:hover {
-            background: rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 111, 122, 0.25);
-        }
-
-        .harmful-index {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.72rem;
-            font-weight: 700;
-            background: rgba(255, 111, 122, 0.25);
-            color: #ffb8be;
-            flex-shrink: 0;
-        }
-
-        .harmful-name {
-            font-weight: 650;
-            font-size: 0.92rem;
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .risk-block {
-            margin-top: 10px;
-            padding: 12px;
-            border-radius: 10px;
-            background: rgba(255, 193, 90, 0.08);
-            border: 1px solid rgba(255, 193, 90, 0.22);
-        }
-
-        .risk-heading {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #ffd08a;
-            margin-bottom: 6px;
-        }
-
-        .risk-list {
-            margin: 0;
-            padding-left: 1.15rem;
-            color: #e8ebe9;
-            font-size: 0.86rem;
-            line-height: 1.45;
-        }
-
-        .risk-list li { margin-bottom: 4px; }
-        .risk-list li:last-child { margin-bottom: 0; }
-
-        .watch-for {
-            margin-top: 10px;
-            font-size: 0.84rem;
-            color: #d7ddd9;
-            line-height: 1.4;
-        }
-
-        .watch-for span {
-            color: var(--accent);
-            font-weight: 650;
-        }
-
-        @media (max-width: 520px) {
-            body { padding: 108px 12px 40px; }
-            .container { padding: 22px 16px; }
-            .scan-actions { flex-direction: column; }
-            .scan-btn,
-            .ghost-btn,
-            .back-btn { width: 100%; }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="video-bg" aria-hidden="true">
-        <video autoplay muted loop playsinline>
-            <source src="ingredient_check.mp4" type="video/mp4">
-        </video>
-        <div class="video-overlay"></div>
-    </div>
 
-    <header class="app-header">
-        <div class="app-logo">
-            <h1 class="app-name">
-                <span class="logo-word">Ingredient</span><span class="logo-underscore">_</span><span class="logo-check">Check</span>
-            </h1>
-            <p class="app-tagline">Scan · Analyze</p>
-            <div class="logo-underline" aria-hidden="true"></div>
+<div class="announce">
+    <div class="shell announce-inner">
+        <div>
+            <strong>Educational information only — not medical advice.</strong>
+            <p>Risk depends on how much you eat and how often. Check anything that matters with a clinician.</p>
         </div>
-    </header>
+    </div>
+</div>
 
-    <div class="layout">
-        <div class="container">
-            <div id="foodQuestionStep">
-                <h1 class="section-title">
-                    <span class="logo-word">Welcome</span>
-                </h1>
-                <div class="section-underline" aria-hidden="true"></div>
-                <p class="question-text">Is this an eating product — food or drink with an ingredient label?</p>
-                <div class="choice-btns">
-                    <button type="button" class="choice-btn choice-yes" id="yesFoodBtn">Yes, it's food</button>
-                    <button type="button" class="choice-btn choice-no" id="noFoodBtn">No, it's not food</button>
-                </div>
-            </div>
+<header class="site-header">
+    <div class="shell site-header-inner">
+        <a class="brand" href="#/" id="brandLink">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </span>
+            <span>Ingredient</span><span class="brand-sub">_Check</span>
+        </a>
 
-            <div id="scanStep" class="hidden">
-                <h1 class="section-title">
-                    <span class="logo-word">Scan</span><span class="logo-underscore">_</span><span class="logo-check">Me</span>
-                </h1>
-                <div class="section-underline" aria-hidden="true"></div>
+        <nav class="site-nav" aria-label="Main">
+            <a class="nav-link" href="#/" data-nav="home">Home</a>
+            <a class="nav-link" href="#how">How it works</a>
+            <a class="nav-link" href="#conditions">Conditions</a>
+        </nav>
 
-                <div
-                    class="drop-zone"
-                    id="dropZone"
-                    role="button"
-                    tabindex="0"
-                    aria-label="Upload or drop an ingredient label photo"
-                    data-drop-trigger
-                >
-                    <div class="drop-icon" aria-hidden="true" data-drop-trigger>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" data-drop-trigger>
-                            <path d="M4 8h3l2-2h6l2 2h3v11H4V8z" data-drop-trigger/>
-                            <circle cx="12" cy="13" r="3.5" data-drop-trigger/>
-                        </svg>
+        <div class="header-actions">
+            <div class="profile-wrap">
+                <button type="button" class="profile-trigger" id="profileTrigger" aria-haspopup="menu" aria-expanded="false">
+                    <span class="avatar avatar-sm avatar-guest" id="headerAvatar">GU</span>
+                    <span id="headerName">Guest</span>
+                </button>
+
+                <div class="profile-menu hidden" id="profileMenu" role="menu">
+                    <div class="profile-menu-head">
+                        <p class="profile-name" id="menuName">Browsing as guest</p>
+                        <p class="profile-meta" id="menuMeta">Scans stay on this device</p>
                     </div>
-                    <strong data-drop-trigger>Share any edible product label</strong>
-                    <p data-drop-trigger>Drop a photo of ingredients or nutrition — chips, biscuits, drinks, dairy, packaged foods, and more.</p>
+                    <button type="button" class="menu-item" id="menuHistory" role="menuitem">Scan history</button>
+                    <button type="button" class="menu-item" id="menuAccount" role="menuitem">Account details</button>
+                    <button type="button" class="menu-item" id="menuSignIn" role="menuitem">Sign in</button>
+                    <button type="button" class="menu-item" id="menuSignUp" role="menuitem">Create a profile</button>
+                    <button type="button" class="menu-item is-danger hidden" id="menuSignOut" role="menuitem">Sign out</button>
                 </div>
-
-                <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
-
-                <div class="scan-actions">
-                    <button type="button" class="scan-btn" id="scanBtn">Choose photo</button>
-                    <button type="button" class="ghost-btn" id="pasteToggleBtn">Paste text instead</button>
-                    <button type="button" class="back-btn" id="backFromScanBtn">← Change answer</button>
-                </div>
-
-                <label class="kids-product-check" id="kidsProductCheckWrap">
-                    <input type="checkbox" id="kidsProductCheck">
-                    <span>This product is for children</span>
-                </label>
-
-                <div id="previewWrap" class="preview-wrap hidden">
-                    <img id="previewImg" alt="Selected label preview">
-                    <button type="button" class="preview-clear" id="clearPreviewBtn">Clear</button>
-                </div>
-
-                <div id="pastePanel" class="paste-panel hidden">
-                    <label for="pasteText">Paste ingredients from the package</label>
-                    <textarea id="pasteText" placeholder="Ingredients: sugar, water, sodium benzoate, ..."></textarea>
-                    <button type="button" class="text-analyze-btn" id="analyzeTextBtn">Analyze text</button>
-                </div>
-
-                <div id="loader" class="loader hidden" aria-hidden="true"></div>
-                <p id="progressLabel" class="progress-label hidden" aria-live="polite"></p>
-                <div id="resultBox" role="region" aria-live="polite"></div>
             </div>
+        </div>
+    </div>
+</header>
 
-            <div id="notFoodStep" class="hidden">
-                <h1 class="section-title section-title-sm">
-                    <span class="logo-word">Not a food</span><span class="logo-underscore">_</span><span class="logo-check">product</span>
-                </h1>
-                <div class="section-underline" aria-hidden="true"></div>
-                <p class="not-food-msg">
-                    This app only scans ingredient labels on eating products (food &amp; drinks).
-                    Please use a food item to continue.
+<!-- ————————————————————————— HOME ————————————————————————— -->
+<main id="homeView">
+
+    <section class="hero">
+        <div class="shell hero-grid">
+            <div>
+                <svg class="hero-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/></svg>
+
+                <h1 class="display"><em>Meet Ingredient_Check.</em><br>Know what is in the packet.</h1>
+
+                <p class="lead hero-lead">
+                    Photograph any ingredients panel. Every additive of concern is named in plain language, and
+                    anything that clashes with your own health conditions is pulled to the top.
                 </p>
-                <button type="button" class="back-btn" id="backFromNotFoodBtn">← Go back</button>
+
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#/scan">Scan a label</a>
+                    <a class="btn btn-secondary" href="#how">See how it works</a>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="stat-chip">
+                        <span class="stat-num" data-stat="ingredients">—</span>
+                        <span class="stat-label">Additives profiled</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-num" data-stat="conditions">—</span>
+                        <span class="stat-label">Conditions covered</span>
+                    </div>
+                    <div class="stat-chip">
+                        <span class="stat-num" data-stat="terms">—</span>
+                        <span class="stat-label">Label terms matched</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-visual" aria-hidden="true">
+                <div class="mock-main">
+                    <div class="mock-photo">
+                        <img src="img1.png" alt="" width="819" height="655">
+                        <span class="mock-scanline"></span>
+                    </div>
+                    <div class="mock-body">
+                        <span class="mock-label">Verdict</span>
+                        <p class="mock-title">4 ingredients worth knowing about</p>
+                        <div class="mock-chips">
+                            <span class="mock-chip mock-chip-high">2 high concern</span>
+                            <span class="mock-chip mock-chip-mod">2 moderate</span>
+                            <span class="mock-chip">Sodium 890 mg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="float-card float-1">
+                    <span class="float-icon float-icon-red">!</span>
+                    <div>High blood pressure<small>Sodium, MSG — avoid</small></div>
+                </div>
+
+                <div class="float-card float-2">
+                    <span class="float-icon float-icon-amber">7+</span>
+                    <div>Kids safety<small>Not for under 7</small></div>
+                </div>
+
+                <div class="float-card float-3">
+                    <span class="float-icon float-icon-green">✓</span>
+                    <div>Read on your device<small>Photo never uploaded</small></div>
+                </div>
             </div>
         </div>
+    </section>
 
-        <aside class="side-panels" aria-label="Health conditions and history">
-            <section class="panel" id="kidsModePanel">
-                <div class="panel-head">
-                    <div>
-                        <h3>Kids Safety Mode</h3>
-                        <p class="panel-sub">Flag colors, sugar &amp; caffeine for children</p>
-                    </div>
+    <section class="section section-tint">
+        <div class="shell split split-scan">
+            <div>
+                <p class="eyebrow">Label scan</p>
+                <h2 class="display">Read any ingredients panel in one photo.</h2>
+                <p>
+                    Optical character recognition pulls the text out of your photo, then repairs the mistakes small
+                    print reliably causes — so every way a label can name the same additive ends up as one finding.
+                </p>
+
+                <ul class="tick-list tick-list-rich">
+                    <li>
+                        <span class="tick">✓</span>
+                        <span>
+                            <strong>It reads the photo on your device</strong>
+                            Tesseract.js does the recognition inside this browser, so nothing is uploaded and a weak
+                            supermarket connection does not matter.
+                        </span>
+                    </li>
+                    <li>
+                        <span class="tick">✓</span>
+                        <span>
+                            <strong>A claim is not an ingredient</strong>
+                            &ldquo;No added sugar&rdquo; and &ldquo;unsweetened&rdquo; are read as negated phrases, so
+                            they never get counted as sugar on the label.
+                        </span>
+                    </li>
+                    <li>
+                        <span class="tick">✓</span>
+                        <span>
+                            <strong>Print too small to photograph</strong>
+                            Type or paste the ingredients text from the pack instead and the report comes out the same.
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div class="scan-media">
+                <div class="split-media">
+                    <img src="img1.png" alt="A shopper photographing the ingredients panel on the back of a packet in a supermarket aisle" width="819" height="655">
                 </div>
-                <label class="condition-row kids-mode-row">
-                    <input type="checkbox" id="kidsModeToggle">
-                    <span>
-                        <strong>Enable Kids Safety Mode</strong>
-                        <span>Warn when a product looks unsuitable under 10 years</span>
+
+                <figure class="resolve">
+                    <div class="resolve-side">
+                        <figcaption class="resolve-cap">Printed on the pack</figcaption>
+                        <ul class="resolve-raw">
+                            <li>INS 621</li>
+                            <li>E621</li>
+                            <li>Monosodium glutamate</li>
+                        </ul>
+                    </div>
+                    <span class="resolve-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 12h13M12 7l5 5-5 5"/></svg>
                     </span>
-                </label>
-                <p class="condition-active-note" id="kidsModeNote"></p>
-            </section>
-
-            <section class="panel" id="conditionsPanel">
-                <div class="panel-head">
-                    <div>
-                        <h3>My health conditions</h3>
-                        <p class="panel-sub">We’ll warn you what’s not recommended</p>
+                    <div class="resolve-side">
+                        <p class="resolve-cap">Reported once as</p>
+                        <div class="resolve-out">
+                            <strong>MSG (Monosodium Glutamate)</strong>
+                            <span class="resolve-tag">Moderate concern · flavour enhancer</span>
+                        </div>
                     </div>
-                </div>
-                <div class="condition-list" id="conditionList"></div>
-                <p class="condition-active-note" id="conditionActiveNote"></p>
-            </section>
+                </figure>
+            </div>
+        </div>
+    </section>
 
-            <section class="panel">
-                <div class="panel-head">
-                    <div>
-                        <h3>Recent scans</h3>
-                        <p class="panel-sub">Stored only on this device</p>
+    <section class="section" id="how">
+        <div class="shell">
+            <div class="section-head">
+                <p class="eyebrow eyebrow-caps">How it works</p>
+                <h2 class="display">Three steps, about twenty seconds.</h2>
+                <p>
+                    Everything runs locally, which is also why it works on a shaky connection in the middle of a
+                    supermarket aisle.
+                </p>
+            </div>
+
+            <ol class="steps">
+                <li class="step">
+                    <h3>Set your conditions</h3>
+                    <p>Tick what applies to you beside the scanner. Create a profile to have it remembered across scans, or stay a guest.</p>
+                </li>
+                <li class="step">
+                    <h3>Photograph the label</h3>
+                    <p>Point at the ingredients panel and take the shot, or drop in an image you already have. Good light and a flat surface do most of the work.</p>
+                </li>
+                <li class="step">
+                    <h3>Read the report</h3>
+                    <p>Personal warnings first, then the kids rating, then every flagged additive with its risks. Each scan is saved to your history.</p>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <section class="section section-lav">
+        <div class="shell">
+            <div class="section-head">
+                <p class="eyebrow eyebrow-caps">Don't just read the label</p>
+                <h2 class="display">Ingredient_Check in many more ways</h2>
+            </div>
+
+            <div class="card-grid">
+                <article class="feature">
+                    <span class="feature-icon"><svg viewBox="0 0 24 24"><path d="M3 20h18M7 20v-5M12 20V9M17 20v-8"/></svg></span>
+                    <h3>Grades the risk, with reasons</h3>
+                    <p>Each finding carries a severity, what the additive actually does in food, and what regular consumption is associated with — an explanation, not a scary word.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature-icon"><svg viewBox="0 0 24 24"><path d="M20.8 6.6a5 5 0 00-7.1 0L12 8.3l-1.7-1.7a5 5 0 10-7.1 7.1L12 22l8.8-8.3a5 5 0 000-7.1z"/></svg></span>
+                    <h3>Matches your own conditions</h3>
+                    <p>Tick diabetes, blood pressure, heart, kidney, gut, asthma or PCOS and the report leads with the ingredients you were specifically told to avoid, and why.</p>
+                </article>
+                <article class="feature">
+                    <span class="feature-icon"><svg viewBox="0 0 24 24"><path d="M4 8h13M14 5l3 3-3 3M20 16H7M10 13l-3 3 3 3"/></svg></span>
+                    <h3>Suggests a simpler swap</h3>
+                    <p>When a product looks heavily processed, name it and get alternatives that satisfy the same craving with a shorter ingredients list.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="conditions">
+        <div class="shell">
+            <div class="section-head">
+                <p class="eyebrow eyebrow-caps">Conditions</p>
+                <h2 class="display">Eight avoid lists, drawn from what people are actually told.</h2>
+                <p>
+                    Each condition has its own list of the ingredients, preservatives and colours that turn up most
+                    often in packaged groceries — with a reason attached to every group.
+                </p>
+            </div>
+
+            <div class="condition-cover" id="conditionCover"></div>
+        </div>
+    </section>
+
+    <section class="section section-tint" id="kids">
+        <div class="shell">
+            <div class="band">
+                <div>
+                    <p class="eyebrow eyebrow-caps">Kids safety</p>
+                    <h2>Every product gets an age, not a sticker.</h2>
+                    <p>
+                        Kids safety runs on every single scan, whether or not the pack is aimed at children. The
+                        additives found on the label set a minimum age, and each one explains itself — so you can
+                        decide, rather than take the app's word for it.
+                    </p>
+                </div>
+                <ul class="band-list" id="kidsAgeList"></ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="shell">
+            <div class="note-strip">
+                <span class="note-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+                </span>
+                <div>
+                    <h3>Your scans do not leave this browser</h3>
+                    <p>
+                        Photos are processed on your device and thrown away. History, conditions and any profile you
+                        create are stored in this browser's local storage — which also means clearing site data wipes
+                        them, and they will not follow you to another computer.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="site-footer">
+        <div class="shell">
+            <div class="footer-top">
+                <p class="footer-disclaimer">
+                    <strong>Educational information only — this is not medical advice.</strong> Risk depends on how
+                    much you eat, how often, and your own health. An ingredient not being flagged does not make a
+                    product healthy, and the database is curated rather than exhaustive. Follow your clinician's
+                    guidance over anything here.
+                </p>
+            </div>
+            <div class="footer-bottom">
+                <span>Ingredient_Check</span>
+                <span>Runs offline · No backend · No tracking</span>
+            </div>
+        </div>
+    </footer>
+</main>
+
+<!-- ————————————————————————— APP ————————————————————————— -->
+<main id="appView" class="app-wrap hidden">
+    <div class="shell">
+        <div class="app-bar">
+            <h1>Label check</h1>
+            <p class="app-bar-note" id="appBarNote">No conditions set — you will still see general additive risks.</p>
+        </div>
+
+        <div class="app-grid">
+            <div class="app-main">
+
+                <!-- Step 1 -->
+                <section class="card" id="foodStep">
+                    <div class="card-head">
+                        <p class="eyebrow">Step 01</p>
+                        <h2>Is this something you eat or drink?</h2>
+                        <p>This scanner reads ingredient panels on edible packaged goods. Cosmetics and cleaning products use a different labelling system.</p>
                     </div>
-                </div>
-                <div class="history-toolbar">
-                    <button type="button" class="panel-btn" id="clearHistoryBtn">Clear</button>
-                </div>
-                <div id="historyList"></div>
-            </section>
-        </aside>
+                    <div class="choice-row">
+                        <button type="button" class="choice" id="yesFoodBtn">
+                            <strong>Yes — food or drink</strong>
+                            <span>Snacks, biscuits, drinks, dairy, sauces, packaged meals</span>
+                        </button>
+                        <button type="button" class="choice choice-no" id="noFoodBtn">
+                            <strong>No — something else</strong>
+                            <span>Cosmetics, supplements, household products</span>
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm" id="backToHomeBtn">← Back to home</button>
+                </section>
+
+                <!-- Step 2 -->
+                <section class="card hidden" id="scanStep">
+                    <div class="card-head">
+                        <p class="eyebrow">Step 02</p>
+                        <h2>Photograph the ingredients panel</h2>
+                        <p>Crop tight to the ingredients or nutrition block if you can — it reads far more accurately than a photo of the whole pack.</p>
+                    </div>
+
+                    <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Upload or drop an ingredient label photo">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 8h3l2-2h6l2 2h3v11H4V8z"/>
+                            <circle cx="12" cy="13" r="3.5"/>
+                        </svg>
+                        <strong>Drop a label photo, or click to choose</strong>
+                        <p>Chips, biscuits, drinks, dairy, sauces, instant noodles — anything with an ingredients list on the back.</p>
+                    </div>
+
+                    <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
+
+                    <div class="scan-actions">
+                        <button type="button" class="btn btn-primary" id="scanBtn">Choose photo</button>
+                        <button type="button" class="btn btn-secondary" id="pasteToggleBtn">Paste text instead</button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="backFromScanBtn">← Change answer</button>
+                    </div>
+
+                    <label class="kids-inline-check">
+                        <input type="checkbox" id="kidsProductCheck">
+                        <span>This product is meant for a child — hold it to the stricter checklist</span>
+                    </label>
+
+                    <div class="preview hidden" id="previewWrap">
+                        <img id="previewImg" alt="Selected label preview">
+                        <button type="button" class="preview-clear" id="clearPreviewBtn">Clear</button>
+                    </div>
+
+                    <div class="paste-panel hidden" id="pastePanel">
+                        <label for="pasteText">Ingredients text from the pack</label>
+                        <textarea class="field" id="pasteText" placeholder="Ingredients: Refined wheat flour (maida), sugar, edible vegetable oil (palm), invert syrup, raising agents (INS 503(ii), INS 500(ii)), emulsifier (INS 322), salt..."></textarea>
+                        <button type="button" class="btn btn-primary btn-sm" id="analyzeTextBtn" style="margin-top:12px">Analyse text</button>
+                    </div>
+
+                    <div class="progress hidden" id="progress">
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span class="progress-label" id="progressLabel">Reading label…</span>
+                    </div>
+
+                    <div class="report" id="resultBox" role="region" aria-live="polite"></div>
+                </section>
+
+                <!-- Not food -->
+                <section class="card hidden" id="notFoodStep">
+                    <div class="card-head">
+                        <p class="eyebrow">Not supported</p>
+                        <h2>That one is outside what this reads</h2>
+                        <p>Ingredient_Check only interprets food labelling — E-numbers, INS codes and nutrition panels. Cosmetics use INCI names and supplements are dosed differently, so applying food rules to them would be misleading.</p>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="backFromNotFoodBtn">← Go back</button>
+                </section>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar" aria-label="Your settings">
+                <section class="panel">
+                    <div class="profile-card">
+                        <span class="avatar avatar-guest" id="sideAvatar">GU</span>
+                        <div>
+                            <p class="profile-name" id="sideName">Browsing as guest</p>
+                            <p class="profile-meta" id="sideMeta">Create a profile to keep your conditions and history</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm btn-block" id="sideAuthBtn" style="margin-top:14px">Create a profile</button>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h3>Kids safety</h3>
+                    </div>
+                    <p class="panel-sub">Runs on every scan. The toggle only decides how prominent the result is.</p>
+                    <label class="toggle-row">
+                        <input type="checkbox" id="kidsModeToggle">
+                        <span class="toggle-copy">
+                            <strong>Lead with the kids rating</strong>
+                            <span>Put the age assessment at the top of every report</span>
+                        </span>
+                    </label>
+                    <p class="panel-note" id="kidsModeNote"></p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h3>My conditions</h3>
+                    </div>
+                    <p class="panel-sub">Pick what applies. Each one brings its own avoid list into the report.</p>
+                    <div class="condition-list" id="conditionList"></div>
+                    <p class="panel-note" id="conditionNote"></p>
+                </section>
+            </aside>
+        </div>
     </div>
+</main>
 
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="javascript.js"></script>
+<!-- ————————————————————————— HISTORY ————————————————————————— -->
+<button type="button" class="history-tab" id="historyTab" aria-controls="historyDrawer" aria-expanded="false">
+    History
+    <span class="history-count" id="historyCount">0</span>
+</button>
+
+<div class="drawer-backdrop" id="historyBackdrop"></div>
+
+<aside class="drawer" id="historyDrawer" aria-label="Scan history" aria-hidden="true">
+    <div class="drawer-head">
+        <h2>Scan history</h2>
+        <button type="button" class="drawer-close" id="historyClose" aria-label="Close history">✕</button>
+    </div>
+    <div class="drawer-sub">
+        <span id="historyOwner">Guest scans on this device</span>
+        <button type="button" class="btn btn-ghost btn-sm btn-danger-text" id="clearHistoryBtn">Clear</button>
+    </div>
+    <div class="drawer-body" id="historyList"></div>
+</aside>
+
+<!-- ————————————————————————— AUTH ————————————————————————— -->
+<div class="modal-backdrop" id="authBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <p class="eyebrow" id="authEyebrow">Profile</p>
+        <h2 id="authTitle">Create a profile</h2>
+        <p class="modal-sub" id="authSub">Keep your health conditions and scan history together, and switch between people using the same browser.</p>
+
+        <form class="form-grid" id="authForm" novalidate>
+            <div class="form-error hidden" id="authError"></div>
+
+            <div class="form-row" id="authNameRow">
+                <label for="authName">Name</label>
+                <input class="field" type="text" id="authName" autocomplete="name" maxlength="40" placeholder="Preeti">
+            </div>
+
+            <div class="form-row">
+                <label for="authEmail">Email</label>
+                <input class="field" type="email" id="authEmail" autocomplete="email" maxlength="80" placeholder="you@example.com">
+            </div>
+
+            <div class="form-row">
+                <label for="authPassword">Password</label>
+                <input class="field" type="password" id="authPassword" autocomplete="current-password" maxlength="72" placeholder="At least 8 characters">
+                <p class="form-hint" id="authPasswordHint">Used only to separate profiles on this device.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="authSubmit">Create profile</button>
+        </form>
+
+        <div class="form-footer">
+            <span id="authSwitchText">Already have a profile here?</span>
+            <button type="button" class="link-btn" id="authSwitch">Sign in</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="authClose" style="margin-left:auto">Cancel</button>
+        </div>
+
+        <p class="modal-privacy">
+            This is a local profile, not an online account. Your details are stored in this browser only — nothing is
+            sent anywhere, there is no password recovery, and clearing site data deletes it.
+        </p>
+    </div>
+</div>
+
+<!-- ————————————————————————— ACCOUNT ————————————————————————— -->
+<div class="modal-backdrop" id="accountBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+        <p class="eyebrow">Account</p>
+        <h2 id="accountTitle">Your profile</h2>
+        <p class="modal-sub" id="accountSub">Stored locally in this browser.</p>
+
+        <div class="panel" id="accountBody"></div>
+
+        <div class="form-footer">
+            <button type="button" class="btn btn-ghost btn-sm btn-danger-text" id="deleteAccountBtn">Delete this profile</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="accountClose" style="margin-left:auto">Close</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="ingredient-database.js"></script>
+<script src="condition-database.js"></script>
+<script src="profile.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

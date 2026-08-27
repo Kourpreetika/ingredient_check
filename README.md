@@ -1,153 +1,127 @@
 # Ingredient_Check
 
-A browser app that scans food ingredient labels (photo or text), flags concerning additives, explains health risks if consumed, and warns when a product doesn’t fit your personal health conditions (for example diabetes).
+Photograph the ingredients panel on a packaged food and get back a plain-language report: which additives are in it, what each one does, which of them clash with your health conditions, and the youngest age the product is suitable for.
 
-## Overview
+Runs entirely in the browser. No build step, no backend, no network calls except the OCR library.
 
-**Ingredient_Check** lets you upload or photograph a packaged food label. It uses **OCR** ([Tesseract.js](https://tesseract.projectnaptha.com/)) to read the text, then matches it against a curated additive database (aliases and E-numbers collapse into one finding).
+> **Educational information only — not medical advice.** Risk depends on quantity, frequency and your own health. An ingredient not being flagged does not mean it is absent or safe. Follow your clinician's guidance over anything here.
 
-You can also set **health conditions** (diabetes, high blood pressure, heart disease, kidney disease, IBS, asthma/sulfites). When a scan finds conflicting ingredients — such as sugar with diabetes — the app shows a clear **Not recommended for you** warning.
+## What it does
 
-> **Disclaimer:** Educational and informational use only. Not medical advice. A missing flag does not mean a product is safe. Always follow your clinician’s guidance.
+- **Reads the label** — OCR ([Tesseract.js](https://tesseract.projectnaptha.com/)) pulls the ingredients and nutrition text out of a photo, on your device. Paste the text instead if the print is too small.
+- **Names the additive once** — MSG, monosodium glutamate, E621 and INS 621 collapse into a single finding. Indian INS codes are normalised to E-numbers before matching.
+- **Explains the risk** — every finding carries a severity, what it does in food, and what regular consumption is associated with.
+- **Matches your conditions** — eight avoid lists, each group carrying the reason it is on the list and the exact term that triggered it.
+- **Grades every product for children** — not a blanket warning: the additives found set a minimum age, and each one explains itself.
+- **Suggests swaps** — name a product and get alternatives for the same craving.
+- **Keeps history per profile** — a side drawer of past scans, tap any one to reopen the report.
+- **Local profiles** — several people can use the same browser without sharing conditions or history.
 
-## Features
+## Running it
 
-- **Food check** — Confirms the item is food before scanning
-- **OCR label scan** — Reads ingredient & nutrition text from photos of any edible packaged product
-- **Drag & drop + camera** — Drop an image, pick a file, or use the phone camera
-- **Paste text fallback** — Analyze a pasted ingredients list when OCR struggles
-- **Harmful-ingredient report** — Lists every matched additive of concern
-- **Health risks** — For each finding: risks if consumed regularly, severity, and who should be careful
-- **Smarter matching** — Aliases collapsed (e.g. MSG / E621 / monosodium glutamate → one result); nested false matches reduced
-- **Health conditions** — Personalized “not recommended” alerts (saved on this device)
-- **Healthy alternatives** — Enter the product name after an unhealthy scan for better swaps (e.g. Lay’s Magic Masala → Too Yumm, roasted makhana, baked chips)
-- **Kids Safety Mode** — When enabled (or the product is for children): flags Artificial Color, High Sugar, and Caffeine, with “Not recommended below 10 years”
-- **AI chatbot** — After a scan, ask questions like “Can I eat this if I have PCOS?” and get an answer tied to that product’s findings
-- **Scan history** — Recent checks on this device; tap to restore a report
-- **No backend** — Runs fully in the browser (no build step)
+Open `index.html` directly, or serve it (recommended — camera capture needs `localhost` or HTTPS):
+
+```bash
+cd ingredient_check
+python3 -m http.server 5500
+```
+
+Then visit `http://localhost:5500/`.
 
 ## Project structure
 
 ```
 ingredient_check/
-├── index.html           # UI, styles, and layout
-├── javascript.js        # OCR, ingredient DB, matching, conditions, history
-├── ingredient_check.mp4 # Full-screen background video
-├── image (2).png        # Sample/reference image
-└── README.md
+├── index.html             # Landing page + scanner, history drawer, profile modals
+├── styles.css             # Visual system
+├── ingredient-database.js # The additive reference + product swap suggestions
+├── condition-database.js  # Per-condition avoid lists, kids rules, matching engine
+├── profile.js             # Local profiles and scoped storage
+├── app.js                 # UI flow, OCR, report rendering, history
+└── img1.png … img5.png    # Reference imagery
 ```
 
-## How to run
+Scripts load in that order — the data files declare globals that `app.js` consumes.
 
-**Option A — open the file**
+## The condition database
 
-Open `index.html` in Chrome, Edge, Firefox, or Safari.
-
-**Option B — local server (recommended for camera)**
-
-```powershell
-cd c:\Users\kourp\ingredient_check
-python -m http.server 5500
-```
-
-Then visit `http://localhost:5500/`.
-
-Camera capture on a phone works best over **HTTPS** or **localhost**.
-
-## Tips for better scans
-
-- Use good lighting and a straight, in-focus photo
-- Crop to the **Ingredients** section when possible
-- Plain text screenshots work well for testing
-- If OCR is weak, use **Paste text instead**
-
-### Sample label text for testing
-
-```
-Ingredients: Water, Sugar, High Fructose Corn Syrup, Sodium Benzoate,
-Red 40, Yellow 5, Monosodium Glutamate, Partially Hydrogenated Soybean Oil,
-Carrageenan, Artificial Flavor.
-```
-
-With **Diabetes** selected under *My health conditions*, sugar / HFCS-style ingredients should trigger a personalized not-recommended warning.
-
-## How it works
-
-```
-Set health conditions (optional)
-       ↓
-Upload label photo or paste text
-       ↓
-Tesseract.js extracts text (skipped for paste)
-       ↓
-Text normalized · image lightly preprocessed for OCR
-       ↓
-Match aliases (longest first) · collapse duplicates
-       ↓
-Build report: harmful list + risks + condition warnings
-       ↓
-Ask product name → healthy alternative suggestions (if concerns found)
-       ↓
-Save scan to history on this device
-```
-
-
-With a concerning scan, enter e.g. **Lay's Magic Masala** to see swaps like Too Yumm, roasted makhana, and baked chips. Unknown products still get category-based suggestions.
-
-Ingredient entries in `javascript.js` look like:
+`condition-database.js` is the file to edit when you want to change what gets flagged. Each condition owns groups of label terms, and every group states its level and its reason:
 
 ```js
 {
-  id: "msg",
-  name: "MSG (Monosodium Glutamate)",
-  aliases: ["monosodium glutamate", "msg", "e621"],
-  category: "Flavor Enhancers",
-  severity: "moderate",
-  note: "Flavor enhancer that boosts savory (umami) taste.",
-  risks: [
-    "Some people get headache, flushing, or tingling shortly after eating it",
-    "Adds sodium, which can matter for blood pressure",
+  id: "asthma",
+  label: "Asthma",
+  focus: "Sulphites, azo dyes and benzoates.",
+  groups: [
+    {
+      id: "asthma-sulphites",
+      title: "Sulphites",
+      level: "avoid",          // "avoid" | "limit"
+      why: "Sulphites release sulphur dioxide gas in the stomach...",
+      terms: ["sodium metabisulphite", "e223", "sulphur dioxide", ...],
+    },
   ],
-  watchFor: "People who notice MSG sensitivity or are limiting sodium.",
+  nutrition: [{ key: "sodium", limit: 0.6, unit: "g", why: "..." }],
 }
 ```
 
-Condition-specific advice is mapped separately (for example sugar → not recommended with diabetes).
+Terms are written the way they appear on real packs, including British spellings and E-numbers. Matching is longest-first with negation guards, so `no added sugar` does not trigger the sugar group and `high fructose corn syrup` does not also report `corn syrup`.
 
-## Ingredient categories covered
+### Conditions covered
 
-- Sweeteners (sugar, HFCS, aspartame, sucralose, E950–E955)
-- Preservatives (sodium benzoate, BHT, TBHQ, nitrates, sulfites)
-- Artificial colors (Red 40, Yellow 5, tartrazine, E102–E133)
-- Fats & oils (palm oil, hydrogenated / trans fats)
-- Flavor enhancers (MSG, E621, yeast extract)
-- Emulsifiers & thickeners (carrageenan, polysorbate 80)
-- Other additives (maltodextrin, titanium dioxide, brominated vegetable oil, etc.)
-
-## Health conditions
-
-| Condition | Example warnings |
+| Condition | Focus |
 | --- | --- |
-| Diabetes | Sugar, HFCS, maltodextrin, dextrose |
-| High blood pressure | MSG, yeast extract, cured-meat additives |
-| Heart disease | Hydrogenated oils / trans fats, nitrites |
-| Kidney disease | Phosphates, aluminum additives |
-| IBS / sensitive gut | Carrageenan, polysorbates |
-| Asthma / sulfite sensitivity | Sulfites, some dyes (e.g. Yellow 5) |
+| Diabetes | Added sugars, syrups, fast-digesting starches, trans fats |
+| High blood pressure | Sodium compounds, flavour enhancers, cured meats, liquorice |
+| Low blood pressure | Alcohol, diuretic extracts, large refined-carb loads |
+| Heart disease | Trans fats, tropical saturated fats, nitrites, salt |
+| Kidney disease | Added phosphates, potassium salts, sodium, aluminium |
+| Sensitive gut | Emulsifiers, polyols, fermentable fibres, FODMAP flavourings |
+| Asthma | Sulphites, azo dyes, benzoates |
+| PCOS / PCOD | Added sugars, refined starches, trans fats, ultra-processed markers |
+
+Low blood pressure deliberately does **not** inherit the sodium warnings — over-restricting salt is the wrong advice there, and the report says so.
+
+## Kids safety
+
+`KIDS_SAFETY_RULES` runs on every scan whether or not the pack is aimed at children. Each rule carries a `minAge`, and the strictest match sets the product's floor:
+
+| Rule | Minimum age |
+| --- | --- |
+| Honey | 1 |
+| Added sugar, artificial sweeteners, high sodium, sugar alcohols | 5 |
+| Artificial colours, benzoates, trans fats, cured meat, synthetic antioxidants | 10 |
+| Caffeine | 12 |
+
+The sidebar toggle only controls whether the rating leads the report — it never turns the check off.
+
+## Profiles
+
+Profiles are records in `localStorage`, not accounts. Passwords are salted and SHA-256 hashed so they are not stored in plain text, but **this is not authentication** — anyone with access to the browser can read the data, and the sign-up dialog says so. Its purpose is separating several people's conditions and history on a shared device.
+
+Storage is namespaced per profile (`ingredient_check_history:u_<id>`), so signing out returns you to the guest scope and deleting a profile removes everything stored under it.
+
+## Tips for better scans
+
+- Crop tight to the ingredients block rather than photographing the whole pack
+- Good light, flat surface, no glare from the plastic
+- If OCR struggles, use **Paste text instead** — the report is identical
+
+### Sample label text
+
+```
+Ingredients: Refined wheat flour (maida), sugar, edible vegetable oil (palm),
+invert syrup, sodium metabisulphite (INS 223), tartrazine (E102), monosodium
+glutamate (E621), sodium benzoate (E211), maltodextrin, caffeine, partially
+hydrogenated vegetable oil, salt.
+Nutrition per 100g: Total Sugars 28g, Total Fat 24g, Protein 6g, Sodium 850mg.
+```
+
+With **Diabetes** and **Asthma** ticked this returns a *Not recommended for you* verdict, a kids floor of 12 years, and twelve flagged additives.
 
 ## Limitations
 
-- OCR depends on image quality; blurry or curved labels may misread text
-- Matching is text-based — typos or unusual spellings can be missed
-- Database is curated and static — not exhaustive
-- History and health conditions stay in the browser (`localStorage`) only
-- Personalized tips are educational, not a clinical diet plan
-
-## Push to GitHub
-
-```powershell
-cd c:\Users\kourp\ingredient_check
-git add .
-git commit -m "Improve Ingredient_Check: health risks, conditions, and UI"
-git push -u origin HEAD
-```
+- OCR accuracy depends on the photo; curved or glossy packaging misreads
+- Matching is text-based, so unusual spellings and OCR errors can be missed
+- The databases are curated, not exhaustive
+- Everything lives in `localStorage` — clearing site data wipes it, and it does not sync between devices
