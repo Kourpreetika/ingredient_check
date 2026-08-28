@@ -341,7 +341,8 @@ function renderConditionCover() {
   const wrap = $("conditionCover");
   if (!wrap) return;
   wrap.innerHTML = CONDITION_LIBRARY.map(
-    (c) => `<article class="condition-cover-item"><h3>${escapeHtml(c.label)}</h3></article>`
+    (c, i) =>
+      `<article class="condition-cover-item"><span class="condition-cover-num">${String(i + 1).padStart(2, "0")}</span><h3>${escapeHtml(c.label)}</h3></article>`
   ).join("");
 }
 

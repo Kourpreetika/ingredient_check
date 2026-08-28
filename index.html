@@ -4,22 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Photograph a food label and get a plain-language report of the additives inside, matched against your own health conditions.">
-    <meta name="theme-color" content="#fbf8f3">
-    <title>Ingredient_Check — read the label before you buy it</title>
+    <meta name="theme-color" content="#f3eee6">
+    <title>Ingredient Check — read the label before you buy it</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div class="announce">
     <div class="shell announce-inner">
-        <div>
-            <strong>Educational information only — not medical advice.</strong>
-            <p>Risk depends on how much you eat and how often. Check anything that matters with a clinician.</p>
-        </div>
+        <p>Educational only — not medical advice. Amount, frequency, and your own health all matter.</p>
     </div>
 </div>
 
@@ -29,7 +26,7 @@
             <span class="brand-mark" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>
             </span>
-            <span>Ingredient</span><span class="brand-sub">_Check</span>
+            <span>Ingredient</span><span class="brand-sub"> Check</span>
         </a>
 
         <nav class="site-nav" aria-label="Main">
@@ -67,9 +64,8 @@
     <section class="hero">
         <div class="shell hero-grid">
             <div>
-                <svg class="hero-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/></svg>
-
-                <h1 class="display"><em>Meet Ingredient_Check.</em><br>Understand any food label in seconds.</h1>
+                <p class="eyebrow">A second look at packaged food</p>
+                <h1 class="display">Understand any food label in seconds.</h1>
 
                 <p class="lead hero-lead">
                     Photograph the ingredients list and get a straight answer — what is really inside, which parts
@@ -79,56 +75,33 @@
 
                 <div class="hero-actions">
                     <a class="btn btn-primary" href="#/scan">Scan a label</a>
-                    <a class="btn btn-secondary" href="#how">See how it works</a>
+                    <a class="btn btn-secondary" href="#how">How it works</a>
                 </div>
 
-                <div class="hero-stats">
-                    <div class="stat-chip">
+                <ul class="hero-stats">
+                    <li>
                         <span class="stat-num" data-stat="ingredients">—</span>
                         <span class="stat-label">Additives profiled</span>
-                    </div>
-                    <div class="stat-chip">
+                    </li>
+                    <li>
                         <span class="stat-num" data-stat="conditions">—</span>
                         <span class="stat-label">Conditions covered</span>
-                    </div>
-                    <div class="stat-chip">
+                    </li>
+                    <li>
                         <span class="stat-num" data-stat="terms">—</span>
                         <span class="stat-label">Label terms matched</span>
-                    </div>
-                </div>
+                    </li>
+                </ul>
             </div>
 
-            <div class="hero-visual" aria-hidden="true">
-                <div class="mock-main">
-                    <div class="mock-photo">
-                        <img src="img1.png" alt="" width="819" height="655">
-                        <span class="mock-scanline"></span>
-                    </div>
-                    <div class="mock-body">
-                        <span class="mock-label">Verdict</span>
-                        <p class="mock-title">4 ingredients worth knowing about</p>
-                        <div class="mock-chips">
-                            <span class="mock-chip mock-chip-high">2 high concern</span>
-                            <span class="mock-chip mock-chip-mod">2 moderate</span>
-                            <span class="mock-chip">Sodium 890 mg</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="float-card float-1">
-                    <span class="float-icon float-icon-red">!</span>
-                    <div>High BP<small>Sodium, MSG — avoid</small></div>
-                </div>
-
-                <div class="float-card float-2">
-                    <span class="float-icon float-icon-amber">7+</span>
-                    <div>Kids safety<small>Not for under 7</small></div>
-                </div>
-
-                <div class="float-card float-3">
-                    <span class="float-icon float-icon-green">✓</span>
-                    <div>Read on your device<small>Photo never uploaded</small></div>
-                </div>
+            <div class="hero-visual">
+                <figure class="hero-frame">
+                    <img src="img1.png" alt="" width="819" height="655">
+                    <figcaption>
+                        <span>On a typical snack pack</span>
+                        <strong>Four ingredients worth a second look</strong>
+                    </figcaption>
+                </figure>
             </div>
         </div>
     </section>
@@ -177,8 +150,8 @@
 
     <section class="section" id="how">
         <div class="shell">
-            <div class="section-head">
-                <p class="eyebrow eyebrow-caps">How it works</p>
+            <div class="section-head is-left">
+                <p class="eyebrow">How it works</p>
                 <h2 class="display">Three steps, about twenty seconds.</h2>
                 <p>
                     No sign-up, no waiting for results, and nothing to install.
@@ -204,9 +177,9 @@
 
     <section class="section section-lav">
         <div class="shell">
-            <div class="section-head">
-                <p class="eyebrow eyebrow-caps">Don't just read the label</p>
-                <h2 class="display">Ingredient_Check in many more ways</h2>
+            <div class="section-head is-left">
+                <p class="eyebrow">What else it does</p>
+                <h2 class="display">A report you can actually use in the aisle.</h2>
             </div>
 
             <div class="card-grid">
@@ -231,8 +204,8 @@
 
     <section class="section" id="conditions">
         <div class="shell">
-            <div class="section-head">
-                <p class="eyebrow eyebrow-caps">Conditions</p>
+            <div class="section-head is-left">
+                <p class="eyebrow">Conditions</p>
                 <h2 class="display">Built for the conditions people actually manage.</h2>
                 <p>
                     Choose yours before you scan, and the report leads with what it means for you.
@@ -247,7 +220,7 @@
         <div class="shell">
             <div class="band">
                 <div>
-                    <p class="eyebrow eyebrow-caps">Kids safety</p>
+                    <p class="eyebrow">Kids safety</p>
                     <h2>Every product gets an age, not a sticker.</h2>
                     <p>
                         Kids safety runs on every single scan, whether or not the pack is aimed at children. The
@@ -289,7 +262,7 @@
                 </p>
             </div>
             <div class="footer-bottom">
-                <span>Ingredient_Check</span>
+                <span>Ingredient Check</span>
             </div>
         </div>
     </footer>
@@ -309,7 +282,7 @@
         <div class="flow card">
             <div class="flow-step">
                 <div class="step-head">
-                    <span class="step-num">1</span>
+                    <span class="step-num">01</span>
                     <div class="step-title">
                         <h2>My conditions</h2>
                         <p>Select anything that applies.</p>
@@ -328,7 +301,7 @@
 
             <div class="flow-step">
                 <div class="step-head">
-                    <span class="step-num">2</span>
+                    <span class="step-num">02</span>
                     <div class="step-title">
                         <h2>Is this for a child?</h2>
                         <p>Optional. Uses a stricter checklist if it is.</p>
@@ -345,7 +318,7 @@
 
             <div class="flow-step">
                 <div class="step-head">
-                    <span class="step-num">3</span>
+                    <span class="step-num">03</span>
                     <div class="step-title">
                         <h2>Drop the label</h2>
                         <p>Photograph the ingredients list, or type it in.</p>
@@ -382,7 +355,7 @@
 
             <div class="flow-step flow-step-last">
                 <div class="step-head">
-                    <span class="step-num">4</span>
+                    <span class="step-num">04</span>
                     <div class="step-title">
                         <h2>Create a full report</h2>
                         <p>A photo starts this on its own. Use the button if you typed the label, or to refresh after changing conditions.</p>
