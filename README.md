@@ -9,9 +9,8 @@ Runs entirely in the browser. No build step, no backend, no network calls except
 ## What it does
 
 - **Reads the label** — OCR ([Tesseract.js](https://tesseract.projectnaptha.com/)) pulls the ingredients and nutrition text out of a photo, on your device. Paste the text instead if the print is too small.
-- **Names the additive once** — MSG, monosodium glutamate, E621 and INS 621 collapse into a single finding. Indian INS codes are normalised to E-numbers before matching.
 - **Explains the risk** — every finding carries a severity, what it does in food, and what regular consumption is associated with.
-- **Matches your conditions** — eight avoid lists, each group carrying the reason it is on the list and the exact term that triggered it.
+- **Matches your conditions** — seven avoid lists, each group carrying the reason it is on the list and the exact term that triggered it.
 - **Grades every product for children** — not a blanket warning: the additives found set a minimum age, and each one explains itself.
 - **Suggests swaps** — name a product and get alternatives for the same craving.
 - **Keeps history per profile** — a side drawer of past scans, tap any one to reopen the report.
@@ -71,14 +70,13 @@ Terms are written the way they appear on real packs, including British spellings
 
 | Condition | Focus |
 | --- | --- |
-| Diabetes | Added sugars, syrups, fast-digesting starches, trans fats |
-| High blood pressure | Sodium compounds, flavour enhancers, cured meats, liquorice |
-| Low blood pressure | Alcohol, diuretic extracts, large refined-carb loads |
-| Heart disease | Trans fats, tropical saturated fats, nitrites, salt |
-| Kidney disease | Added phosphates, potassium salts, sodium, aluminium |
-| Sensitive gut | Emulsifiers, polyols, fermentable fibres, FODMAP flavourings |
+| Diabetes Type A | Added sugars, syrups, trans fats |
+| Diabetes Type B | Added sugars, syrups, fast-digesting starches, trans fats |
+| High BP | Sodium compounds, flavour enhancers, cured meats, liquorice |
+| Low BP | Alcohol, diuretic extracts, large refined-carb loads |
+| PCOD | Added sugars, refined starches, trans fats, ultra-processed markers |
 | Asthma | Sulphites, azo dyes, benzoates |
-| PCOS / PCOD | Added sugars, refined starches, trans fats, ultra-processed markers |
+| Sensitive gut | Emulsifiers, polyols, fermentable fibres, FODMAP flavourings |
 
 Low blood pressure deliberately does **not** inherit the sodium warnings — over-restricting salt is the wrong advice there, and the report says so.
 
@@ -111,13 +109,12 @@ Storage is namespaced per profile (`ingredient_check_history:u_<id>`), so signin
 
 ```
 Ingredients: Refined wheat flour (maida), sugar, edible vegetable oil (palm),
-invert syrup, sodium metabisulphite (INS 223), tartrazine (E102), monosodium
-glutamate (E621), sodium benzoate (E211), maltodextrin, caffeine, partially
-hydrogenated vegetable oil, salt.
+invert syrup, sodium metabisulphite, tartrazine, monosodium glutamate, sodium
+benzoate, maltodextrin, caffeine, partially hydrogenated vegetable oil, salt.
 Nutrition per 100g: Total Sugars 28g, Total Fat 24g, Protein 6g, Sodium 850mg.
 ```
 
-With **Diabetes** and **Asthma** ticked this returns a *Not recommended for you* verdict, a kids floor of 12 years, and twelve flagged additives.
+With **Diabetes Type B** and **Asthma** ticked this returns a *Not recommended for you* verdict, a kids floor of 12 years, and twelve flagged additives.
 
 ## Limitations
 

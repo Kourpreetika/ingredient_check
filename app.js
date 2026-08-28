@@ -45,16 +45,6 @@ const homeView = $("homeView");
 const appView = $("appView");
 const navLinks = document.querySelectorAll("[data-nav]");
 
-const foodStep = $("foodStep");
-const scanStep = $("scanStep");
-const notFoodStep = $("notFoodStep");
-
-const yesFoodBtn = $("yesFoodBtn");
-const noFoodBtn = $("noFoodBtn");
-const backToHomeBtn = $("backToHomeBtn");
-const backFromScanBtn = $("backFromScanBtn");
-const backFromNotFoodBtn = $("backFromNotFoodBtn");
-
 const dropZone = $("dropZone");
 const imageInput = $("imageInput");
 const scanBtn = $("scanBtn");
@@ -69,12 +59,14 @@ const progress = $("progress");
 const progressLabel = $("progressLabel");
 const resultBox = $("resultBox");
 const kidsProductCheck = $("kidsProductCheck");
+const createReportBtn = $("createReportBtn");
 
-const conditionList = $("conditionList");
+const conditionSelect = $("conditionSelect");
+const conditionTrigger = $("conditionTrigger");
+const conditionTriggerLabel = $("conditionTriggerLabel");
+const conditionMenu = $("conditionMenu");
 const conditionNote = $("conditionNote");
 const appBarNote = $("appBarNote");
-const kidsModeToggle = $("kidsModeToggle");
-const kidsModeNote = $("kidsModeNote");
 
 const historyTab = $("historyTab");
 const historyCount = $("historyCount");
@@ -96,10 +88,6 @@ const menuAccount = $("menuAccount");
 const menuSignIn = $("menuSignIn");
 const menuSignUp = $("menuSignUp");
 const menuSignOut = $("menuSignOut");
-const sideAvatar = $("sideAvatar");
-const sideName = $("sideName");
-const sideMeta = $("sideMeta");
-const sideAuthBtn = $("sideAuthBtn");
 
 const authBackdrop = $("authBackdrop");
 const authForm = $("authForm");
@@ -128,8 +116,10 @@ const toastEl = $("toast");
    ———————————————————————————————————————— */
 
 let activeConditions = [];
-let kidsLead = false;
 let currentObjectUrl = null;
+let lastReport = null;
+let lastScan = null;
+let pendingFile = null;
 let isScanning = false;
 let lastProductName = "";
 let authMode = "signup";
@@ -213,15 +203,9 @@ function renderHomeStats() {
 function renderConditionCover() {
   const wrap = $("conditionCover");
   if (!wrap) return;
-  wrap.innerHTML = CONDITION_LIBRARY.map((c) => {
-    const terms = c.groups.reduce((sum, g) => sum + g.terms.length, 0);
-    return `
-      <article class="condition-cover-item">
-        <h3>${escapeHtml(c.label)}</h3>
-        <p>${escapeHtml(c.focus)}</p>
-        <span class="condition-cover-count">${c.groups.length} groups · ${terms} terms</span>
-      </article>`;
-  }).join("");
+  wrap.innerHTML = CONDITION_LIBRARY.map(
+    (c) => `<article class="condition-cover-item"><h3>${escapeHtml(c.label)}</h3></article>`
+  ).join("");
 }
 
 function renderKidsAgeList() {
@@ -255,49 +239,66 @@ function conditionLabel(id) {
 }
 
 function renderConditions() {
-  if (!conditionList) return;
-  conditionList.innerHTML = CONDITION_LIBRARY.map((c) => {
-    const checked = activeConditions.includes(c.id) ? "checked" : "";
-    return `
-      <label class="toggle-row">
-        <input type="checkbox" data-condition="${c.id}" ${checked}>
-        <span class="toggle-copy">
-          <strong>${escapeHtml(c.label)}</strong>
-          <span>${escapeHtml(c.focus)}</span>
-        </span>
-      </label>`;
-  }).join("");
+  if (!conditionMenu) return;
 
-  conditionList.querySelectorAll("input[type=checkbox]").forEach((el) => {
+  if (typeof CONDITION_LIBRARY !== "undefined") {
+    conditionMenu.innerHTML =
+      CONDITION_LIBRARY.map((c) => {
+        const checked = activeConditions.includes(c.id) ? "checked" : "";
+        return `
+      <label class="select-option">
+        <input type="checkbox" data-condition="${c.id}" ${checked}>
+        <span>${escapeHtml(c.label)}</span>
+      </label>`;
+      }).join("") +
+      `<button type="button" class="select-clear" id="conditionClear">Clear all</button>`;
+  } else {
+    conditionMenu.querySelectorAll("input[type=checkbox]").forEach((el) => {
+      el.checked = activeConditions.includes(el.dataset.condition);
+    });
+  }
+
+  conditionMenu.querySelectorAll("input[type=checkbox]").forEach((el) => {
     el.addEventListener("change", () => {
-      activeConditions = [...conditionList.querySelectorAll("input:checked")].map((i) => i.dataset.condition);
+      activeConditions = [...conditionMenu.querySelectorAll("input:checked")].map((i) => i.dataset.condition);
       writeStore("conditions", activeConditions);
       updateConditionNote();
+      refreshReport();
     });
+  });
+
+  $("conditionClear")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    activeConditions = [];
+    conditionMenu.querySelectorAll("input[type=checkbox]").forEach((i) => (i.checked = false));
+    writeStore("conditions", activeConditions);
+    updateConditionNote();
+    refreshReport();
   });
 
   updateConditionNote();
 }
 
-function updateConditionNote() {
-  const names = activeConditions.map(conditionLabel).join(", ");
-  if (conditionNote) {
-    conditionNote.textContent = activeConditions.length
-      ? `Active: ${names}.`
-      : "Nothing selected — you will still see general additive risks.";
-  }
-  if (appBarNote) {
-    appBarNote.textContent = activeConditions.length
-      ? `Checking against: ${names}`
-      : "No conditions set — you will still see general additive risks.";
-  }
+function setConditionMenuOpen(open) {
+  if (!conditionSelect) return;
+  if ("open" in conditionSelect) conditionSelect.open = Boolean(open);
+  conditionSelect.classList.toggle("is-open", Boolean(open));
+  conditionTrigger?.setAttribute("aria-expanded", String(Boolean(open)));
 }
 
-function updateKidsNote() {
-  if (!kidsModeNote) return;
-  kidsModeNote.textContent = kidsLead
-    ? "The kids rating appears at the top of every report."
-    : "The kids rating still runs on every scan — it just sits lower in the report.";
+function updateConditionNote() {
+  const names = activeConditions.map(conditionLabel);
+  const summary = names.join(", ");
+
+  if (conditionTriggerLabel) {
+    conditionTriggerLabel.textContent = names.length ? summary : "Select your conditions";
+    conditionTriggerLabel.classList.toggle("is-placeholder", names.length === 0);
+  }
+  if (conditionNote) conditionNote.textContent = "";
+  if (appBarNote) {
+    appBarNote.textContent = names.length ? `Checking: ${summary}` : "No conditions selected yet.";
+  }
 }
 
 /* ————————————————————————————————————————
@@ -388,8 +389,7 @@ function renderHistory() {
 
       closeHistory();
       if (!location.hash.startsWith("#/scan")) location.hash = "#/scan";
-      showScanStep();
-      displayFindings(findings, entry.extractedText || "", { fromHistory: true });
+      displayFindings(findings, entry.extractedText || "", { fromHistory: true, source: entry.source || "scan" });
       resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
@@ -427,12 +427,17 @@ function normalizeText(text) {
 function enhanceOcrText(text) {
   return text
     .replace(/\bE\s*[-]?\s*(\d{3}[a-z]?)\b/gi, "e$1")
-    .replace(/\bINS\s*[-]?\s*(\d{3}[a-z]?)\b/gi, "e$1")
+    .replace(/\b[IL1]NS\s*[-]?\s*(\d{3}[a-z]?)\b/gi, "e$1")
     .replace(/\bFD\s*[& ]?\s*C\b/gi, "fd&c")
     .replace(/\bmonosodiurn\b/gi, "monosodium")
     .replace(/\bbenzoat[eo]\b/gi, "benzoate")
     .replace(/\bcarageenan\b/gi, "carrageenan")
-    .replace(/\bpartially\s+hydrogenat[eo]d\b/gi, "partially hydrogenated");
+    .replace(/\bpartially\s+hydrogenat[eo]d\b/gi, "partially hydrogenated")
+    .replace(/\bmalda\b/gi, "maida")
+    .replace(/\bpalm\s+olein\b/gi, "palmolein")
+    .replace(/\btartrazin\b/gi, "tartrazine")
+    .replace(/\bvanaspat[iy]\b/gi, "vanaspati")
+    .replace(/\bmetabisulfite\b/gi, "metabisulphite");
 }
 
 function findAliasIndex(normalized, alias) {
@@ -453,11 +458,20 @@ function spansOverlap(aStart, aLen, bStart, bLen) {
 }
 
 function hasAddedSugarWord(normalized) {
-  return /(?:^|[^a-z0-9])sugars?(?!\s*free)(?:[^a-z0-9]|$)/i.test(normalized);
+  const re = /(?:^|[^a-z0-9])(sugars?)(?!\s*free)(?=[^a-z0-9]|$)/gi;
+  let m;
+  while ((m = re.exec(normalized)) !== null) {
+    const start = m.index + m[0].length - m[1].length;
+    const around = normalized.slice(Math.max(0, start - 20), start + 24);
+    if (/of which sugars?/.test(around)) continue;
+    if (cdIsNegated(normalized, start, SUGAR_NEGATIONS)) continue;
+    return true;
+  }
+  return false;
 }
 
 function findIngredients(rawText) {
-  const normalized = normalizeText(enhanceOcrText(rawText));
+  const normalized = normalizeText(enhanceOcrText(extractLabelIngredients(rawText)));
   const candidates = [];
 
   for (const item of INGREDIENT_DB) {
@@ -465,11 +479,16 @@ function findIngredients(rawText) {
     for (const alias of aliasesByLen) {
       const idx = findAliasIndex(normalized, alias);
       if (idx === -1) continue;
+      const matchLen = normalizeText(alias).length;
+      if (cdIsSafeContext(normalized, idx, idx + matchLen, alias)) continue;
+      if (item.id === "added-sugar" && cdIsNegated(normalized, idx, SUGAR_NEGATIONS)) continue;
+      if (item.id === "salt" && cdIsNegated(normalized, idx, ["salt free", "salt-free", "no added salt", "without salt", "unsalted"])) continue;
+      if (item.id === "hydrogenated" && cdIsSafeContext(normalized, idx, idx + matchLen, "hydrogenated")) continue;
       candidates.push({
         ...item,
         matchedAlias: alias,
         matchStart: idx,
-        matchLen: normalizeText(alias).length,
+        matchLen,
       });
       break;
     }
@@ -609,7 +628,7 @@ function renderNutrition(nutrition, flags) {
     <section class="report-block">
       <span class="eyebrow">Nutrition</span>
       <div class="block-head"><h3>Read off the panel</h3></div>
-      <p class="block-lead">Check whether these are per serving or per 100g on the pack — the two are often very different numbers.</p>
+      <p class="block-lead">Check whether the pack states these per serving or per 100 g.</p>
       <div class="nutrition-row">${cells}</div>
       ${
         flags.length
@@ -763,9 +782,8 @@ function renderConditionReport(results) {
         <span class="eyebrow">Your conditions</span>
         <div class="block-head"><h3>Nothing here clashes with your conditions</h3></div>
         <p class="block-lead">
-          Nothing on this label matched the avoid lists for ${escapeHtml(activeConditions.map(conditionLabel).join(", "))}.
-          That is not a clean bill of health — portion size, total sugar and salt still count, and the database is
-          curated rather than exhaustive.
+          Nothing matched the avoid list for ${escapeHtml(activeConditions.map(conditionLabel).join(", "))}.
+          Portion size, sugar and salt still count.
         </p>
       </section>`;
   }
@@ -806,7 +824,7 @@ function renderConditionReport(results) {
     <section class="report-block cond-alert${worst}">
       <span class="eyebrow">Your conditions</span>
       <div class="block-head"><h3>What this means for you</h3></div>
-      <p class="block-lead">These are the ingredients on this label that your conditions specifically call for avoiding, and the reason each one is on the list.</p>
+      <p class="block-lead">What to avoid, and why.</p>
       ${blocks}
     </section>`;
 }
@@ -819,8 +837,8 @@ function renderKidsReport(kids, { prominent }) {
     : `OK<small>any age</small>`;
 
   const lead = flags.length
-    ? `${flags.length} item${flags.length === 1 ? "" : "s"} from the children's checklist ${flags.length === 1 ? "was" : "were"} found on this label.`
-    : "Nothing from the children's checklist was found on this label.";
+    ? `${flags.length} age-restricted item${flags.length === 1 ? "" : "s"} found.`
+    : "Nothing age-restricted was found.";
 
   const flagList = flags
     .map(
@@ -840,12 +858,11 @@ function renderKidsReport(kids, { prominent }) {
 
   return `
     <section class="report-block kids-block tone-${rating.tone}">
-      <span class="eyebrow">Kids safety · runs on every product</span>
+      <span class="eyebrow">Kids safety</span>
       <div class="block-head"><h3>${escapeHtml(rating.label)}</h3></div>
       <p class="block-lead">
         ${escapeHtml(lead)}
         ${kids.looksLikeKidsProduct ? " The wording on this pack suggests it is sold for children." : ""}
-        ${!prominent && flags.length ? " Turn on \u201clead with the kids rating\u201d in the sidebar to keep this at the top." : ""}
       </p>
       <div class="kids-rating">
         <span class="kids-age">${ageBadge}</span>
@@ -938,9 +955,10 @@ function renderIngredientCard(item) {
 
 function displayFindings(findings, extractedText, { fromHistory = false, source = "scan" } = {}) {
   const text = extractedText || "";
+  lastScan = { findings, text, source };
   const conditionResults = evaluateConditions(text, activeConditions);
   const kids = evaluateKidsSafety(text);
-  const kidsRelevant = kidsLead || Boolean(kidsProductCheck?.checked) || kids.looksLikeKidsProduct;
+  const kidsRelevant = Boolean(kidsProductCheck?.checked) || kids.looksLikeKidsProduct;
   const verdict = buildVerdict({ findings, conditionResults, kids, kidsRelevant });
 
   const nutrition = parseNutritionText(text);
@@ -976,8 +994,8 @@ function displayFindings(findings, extractedText, { fromHistory = false, source 
     html += `
       <section class="report-block">
         <span class="eyebrow">Findings</span>
-        <div class="block-head"><h3>Additives found on this label</h3></div>
-        <p class="block-lead">Ordered by severity. Each one is explained in full further down.</p>
+        <div class="block-head"><h3>What was found</h3></div>
+        <p class="block-lead">Worst first.</p>
         <ol class="harmful-list">
           ${findings
             .map(
@@ -1002,7 +1020,8 @@ function displayFindings(findings, extractedText, { fromHistory = false, source 
     let detail = `
       <section class="report-block">
         <span class="eyebrow">Detail</span>
-        <div class="block-head"><h3>What each one does</h3></div>`;
+        <div class="block-head"><h3>What each one does</h3></div>
+        <p class="block-lead">Grouped by what the ingredient is for.</p>`;
     for (const [category, items] of groups) {
       detail += `<div class="cat-group"><p class="cat-title">${escapeHtml(category)}</p>`;
       detail += items.map(renderIngredientCard).join("");
@@ -1021,18 +1040,179 @@ function displayFindings(findings, extractedText, { fromHistory = false, source 
       <summary>Text read from the label</summary>
       <pre>${escapeHtml(text || "(empty)")}</pre>
     </details>
+
+    <section class="report-block download-block">
+      <div>
+        <h3>Download this report</h3>
+        <p>A PDF you can keep, print, or show to your doctor.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="downloadReportBtn">
+        <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5M5 21h14"/></svg>
+        Download PDF
+      </button>
+    </section>
+
     <p class="disclaimer">
-      Educational information only — not medical advice. Risk depends on quantity, frequency and your own health,
-      and an ingredient not appearing here does not mean it is absent or safe. Check anything that matters with a
-      clinician.
+      Educational information only — not medical advice. Risk depends on how much and how often you eat something.
     </p>`;
 
   resultBox.innerHTML = html;
   bindAlternativesUI(findings);
 
+  lastReport = { verdict, findings, conditionResults, kids, kidsRelevant, nutrition, nutritionFlags, text };
+  $("downloadReportBtn")?.addEventListener("click", downloadReportPdf);
+
   if (!fromHistory) {
     addHistoryEntry({ source, findings, extractedText: text, kidsMinAge: kids.minAge });
   }
+}
+
+/* ————————————————————————————————————————
+   PDF export
+   ———————————————————————————————————————— */
+
+function downloadReportPdf() {
+  const jsPDFCtor = window.jspdf?.jsPDF;
+  if (!jsPDFCtor || !lastReport) {
+    toast("The PDF library did not load — check your connection");
+    return;
+  }
+
+  const { verdict, findings, conditionResults, kids, nutrition, text } = lastReport;
+  const doc = new jsPDFCtor({ unit: "pt", format: "a4" });
+
+  const MARGIN = 48;
+  const WIDTH = doc.internal.pageSize.getWidth();
+  const HEIGHT = doc.internal.pageSize.getHeight();
+  const BODY_WIDTH = WIDTH - MARGIN * 2;
+  let y = MARGIN;
+
+  const room = (needed) => {
+    if (y + needed > HEIGHT - MARGIN) {
+      doc.addPage();
+      y = MARGIN;
+    }
+  };
+
+  const write = (str, { size = 10, style = "normal", color = [40, 46, 44], gap = 4, indent = 0 } = {}) => {
+    doc.setFont("helvetica", style);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
+    const lines = doc.splitTextToSize(String(str), BODY_WIDTH - indent);
+    for (const line of lines) {
+      room(size + gap);
+      doc.text(line, MARGIN + indent, y);
+      y += size + gap;
+    }
+  };
+
+  const heading = (str) => {
+    room(38);
+    y += 14;
+    write(str, { size: 13, style: "bold", color: [16, 20, 19], gap: 6 });
+    doc.setDrawColor(226, 232, 230);
+    doc.line(MARGIN, y - 4, WIDTH - MARGIN, y - 4);
+    y += 8;
+  };
+
+  doc.setFillColor(33, 105, 92);
+  doc.rect(0, 0, WIDTH, 84, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(255, 255, 255);
+  doc.text("Ingredient_Check", MARGIN, 44);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Label report — ${new Date().toLocaleString()}`, MARGIN, 63);
+  y = 116;
+
+  write(verdict.label, { size: 15, style: "bold", color: [16, 20, 19], gap: 6 });
+  write(verdict.detail, { size: 10, color: [74, 83, 80], gap: 5 });
+
+  const high = findings.filter((f) => f.severity === "high").length;
+  const moderate = findings.filter((f) => f.severity === "moderate").length;
+  const low = findings.filter((f) => f.severity === "low").length;
+  y += 4;
+  write(
+    `${high} high concern · ${moderate} moderate · ${low} low${kids.minAge ? ` · Suitable from age ${kids.minAge}` : ""}`,
+    { size: 10, style: "bold", color: [33, 105, 92] }
+  );
+
+  if (activeConditions.length) {
+    write(`Checked against: ${activeConditions.map(conditionLabel).join(", ")}`, { size: 9, color: [122, 131, 127] });
+  }
+
+  if (conditionResults?.length) {
+    heading("What this means for you");
+    for (const result of conditionResults) {
+      write(`${result.label} — ${result.verdict === "avoid" ? "Not recommended" : result.verdict === "limit" ? "Limit this" : "Nothing flagged"}`, {
+        size: 11,
+        style: "bold",
+        color: [16, 20, 19],
+        gap: 5,
+      });
+      for (const group of result.groups || []) {
+        write(`• ${group.title} (${group.level})`, { size: 10, style: "bold", indent: 10, gap: 3 });
+        write(group.why, { size: 9.5, color: [74, 83, 80], indent: 20, gap: 3 });
+        if (group.found?.length) {
+          write(`Found on the label: ${group.found.join(", ")}`, { size: 9, color: [122, 131, 127], indent: 20 });
+        }
+      }
+      y += 6;
+    }
+  }
+
+  if (kids?.flags?.length) {
+    heading("Children");
+    write(kids.rating?.label || `Not recommended below ${kids.minAge} years`, { size: 11, style: "bold", gap: 5 });
+    for (const flag of kids.flags) {
+      write(`• ${flag.label} — under ${flag.minAge}`, { size: 10, style: "bold", indent: 10, gap: 3 });
+      write(flag.why, { size: 9.5, color: [74, 83, 80], indent: 20, gap: 3 });
+    }
+  }
+
+  if (findings.length) {
+    heading("Ingredients of concern");
+    for (const item of findings) {
+      write(`${item.name} — ${item.severity}`, { size: 11, style: "bold", gap: 4 });
+      write(item.note, { size: 9.5, color: [74, 83, 80], indent: 10, gap: 3 });
+      for (const risk of (item.risks || []).slice(0, 4)) {
+        write(`• ${risk}`, { size: 9.5, color: [74, 83, 80], indent: 20, gap: 3 });
+      }
+      y += 6;
+    }
+  }
+
+  const nutritionRows = [
+    ["Sugar", nutrition?.sugar],
+    ["Fat", nutrition?.fat],
+    ["Protein", nutrition?.protein],
+    ["Sodium", nutrition?.sodium],
+  ].filter(([, value]) => value != null);
+
+  if (nutritionRows.length) {
+    heading("Nutrition read from the pack");
+    for (const [label, value] of nutritionRows) {
+      write(`${label}: ${value >= 1 ? Number(value.toFixed(1)) : Number(value.toFixed(2))} g`, {
+        size: 10,
+        indent: 10,
+        gap: 3,
+      });
+    }
+  }
+
+  heading("Label text");
+  write(text || "(empty)", { size: 8.5, color: [122, 131, 127], gap: 2 });
+
+  y += 12;
+  write(
+    "Educational information only — not medical advice. Risk depends on how much and how often you eat something. Follow your clinician's guidance over anything here.",
+    { size: 8.5, color: [154, 163, 160] }
+  );
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  doc.save(`ingredient-check-${stamp}.pdf`);
+  toast("Report downloaded");
 }
 
 function showError(title, body, { showPaste = false } = {}) {
@@ -1049,21 +1229,28 @@ function showError(title, body, { showPaste = false } = {}) {
    Scan flow
    ———————————————————————————————————————— */
 
-function showStep(step) {
-  [foodStep, scanStep, notFoodStep].forEach((el) => el?.classList.add("hidden"));
-  step?.classList.remove("hidden");
+function updateCreateButton() {
+  if (createReportBtn) createReportBtn.disabled = isScanning;
 }
 
-function showFoodStep() {
-  showStep(foodStep);
+function isImageFile(file) {
+  if (!file) return false;
+  const type = file.type || "";
+  if (!type || type === "application/octet-stream") return true;
+  return type.startsWith("image/");
 }
 
-function showScanStep() {
-  showStep(scanStep);
-}
-
-function showNotFoodStep() {
-  showStep(notFoodStep);
+function stageFile(file) {
+  if (!file) return;
+  if (!isImageFile(file)) {
+    showError("That is not an image", "Choose a photograph of the ingredients panel.");
+    return;
+  }
+  pendingFile = file;
+  setPreview(file);
+  resultBox.innerHTML = "";
+  updateCreateButton();
+  processImageFile(file);
 }
 
 function clearPreview() {
@@ -1071,30 +1258,38 @@ function clearPreview() {
     URL.revokeObjectURL(currentObjectUrl);
     currentObjectUrl = null;
   }
+  pendingFile = null;
+  lastScan = null;
   previewWrap?.classList.add("hidden");
   if (previewImg) previewImg.src = "";
   if (imageInput) imageInput.value = "";
+  updateCreateButton();
 }
 
 function setPreview(file) {
-  clearPreview();
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = null;
+  }
   currentObjectUrl = URL.createObjectURL(file);
-  previewImg.src = currentObjectUrl;
-  previewWrap.classList.remove("hidden");
+  if (previewImg) previewImg.src = currentObjectUrl;
+  previewWrap?.classList.remove("hidden");
 }
 
 function startScanning(label) {
   isScanning = true;
   resultBox.innerHTML = "";
-  progress.classList.remove("hidden");
-  progressLabel.textContent = label;
-  scanBtn.disabled = true;
+  progress?.classList.remove("hidden");
+  if (progressLabel) progressLabel.textContent = label;
+  if (scanBtn) scanBtn.disabled = true;
+  updateCreateButton();
 }
 
 function stopScanning() {
   isScanning = false;
-  progress.classList.add("hidden");
-  scanBtn.disabled = false;
+  progress?.classList.add("hidden");
+  if (scanBtn) scanBtn.disabled = false;
+  updateCreateButton();
 }
 
 /** Upscale and harden contrast so OCR reads small label print better. */
@@ -1129,21 +1324,20 @@ async function prepareImageForOcr(file) {
 
 async function processImageFile(file) {
   if (!file || isScanning) return;
-  if (!file.type.startsWith("image/")) {
-    showError("That is not an image", "Upload a photograph of the ingredients panel.");
+  if (typeof Tesseract === "undefined") {
+    showError("Could not load the reader", "Check your connection and refresh the page, or type the ingredients instead.", { showPaste: true });
     return;
   }
 
-  setPreview(file);
-  startScanning("Preparing the photo…");
+  startScanning("Reading the label…");
 
   try {
     const prepared = await prepareImageForOcr(file);
-    progressLabel.textContent = "Reading the label…";
+    if (progressLabel) progressLabel.textContent = "Reading the label…";
 
     const result = await Tesseract.recognize(prepared, "eng", {
       logger: (m) => {
-        if (m.status === "recognizing text" && typeof m.progress === "number") {
+        if (m.status === "recognizing text" && typeof m.progress === "number" && progressLabel) {
           progressLabel.textContent = `Reading the label… ${Math.round(m.progress * 100)}%`;
         }
       },
@@ -1153,17 +1347,18 @@ async function processImageFile(file) {
     if (extractedText.length < 5) {
       showError(
         "Could not read enough text",
-        "Try brighter light, a flatter surface, or crop tight to the ingredients block. You can also paste the text below instead.",
+        "Try brighter light, a flatter surface, or crop tight to the ingredients block. You can also type the text instead.",
         { showPaste: true }
       );
       return;
     }
 
-    progressLabel.textContent = "Checking against the databases…";
+    if (progressLabel) progressLabel.textContent = "Building your report…";
     displayFindings(findIngredients(extractedText), extractedText, { source: "photo" });
+    resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     console.error(error);
-    showError("The scan failed", "The photo could not be processed. Paste the ingredient text instead and you will get the same report.", { showPaste: true });
+    showError("The scan failed", "The photo could not be read. Type the ingredients instead and you will get the same report.", { showPaste: true });
   } finally {
     stopScanning();
   }
@@ -1177,6 +1372,31 @@ function analyzePastedText() {
   }
   const cleaned = enhanceOcrText(text);
   displayFindings(findIngredients(cleaned), cleaned, { source: "text" });
+  resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function refreshReport() {
+  if (!lastScan?.text) return;
+  displayFindings(lastScan.findings, lastScan.text, { fromHistory: true, source: lastScan.source });
+}
+
+async function createFullReport() {
+  if (isScanning) return;
+  const pasted = (pasteText?.value || "").trim();
+  if (pasted) {
+    analyzePastedText();
+    return;
+  }
+  if (pendingFile) {
+    await processImageFile(pendingFile);
+    return;
+  }
+  if (lastScan?.text) {
+    refreshReport();
+    resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  showError("Add a label first", "Drop a photo of the ingredients panel, or type the text, then create the report.");
 }
 
 /* ————————————————————————————————————————
@@ -1187,43 +1407,33 @@ function refreshIdentity() {
   const user = Auth.current();
   const initials = Auth.initials(user);
 
-  [headerAvatar, sideAvatar].forEach((el) => {
-    if (!el) return;
-    el.textContent = initials;
-    el.classList.toggle("avatar-guest", !user);
-  });
+  if (headerAvatar) {
+    headerAvatar.textContent = initials;
+    headerAvatar.classList.toggle("avatar-guest", !user);
+  }
 
   if (headerName) headerName.textContent = user ? user.name.split(" ")[0] : "Guest";
   if (menuName) menuName.textContent = user ? user.name : "Browsing as guest";
   if (menuMeta) menuMeta.textContent = user ? user.email : "Scans stay on this device";
-  if (sideName) sideName.textContent = user ? user.name : "Browsing as guest";
-  if (sideMeta) {
-    sideMeta.textContent = user
-      ? "Conditions and history are saved to this profile"
-      : "Create a profile to keep your conditions and history";
-  }
 
   menuSignIn?.classList.toggle("hidden", Boolean(user));
   menuSignUp?.classList.toggle("hidden", Boolean(user));
   menuAccount?.classList.toggle("hidden", !user);
   menuSignOut?.classList.toggle("hidden", !user);
-
-  if (sideAuthBtn) {
-    sideAuthBtn.textContent = user ? "Account details" : "Create a profile";
-  }
 }
 
 /** Pull settings and history for whichever profile is now active. */
 function loadScopedState() {
   const saved = readStore("conditions", []);
-  activeConditions = Array.isArray(saved)
-    ? saved.filter((id) => CONDITION_LIBRARY.some((c) => c.id === id))
+  const mapped = Array.isArray(saved)
+    ? saved.flatMap((id) => (id === "diabetes" ? ["diabetes-a", "diabetes-b"] : [id]))
     : [];
-  kidsLead = readStore("kidslead", false) === true;
+  activeConditions = mapped.filter(
+    (id, i) => mapped.indexOf(id) === i && CONDITION_LIBRARY.some((c) => c.id === id)
+  );
+  if (kidsProductCheck) kidsProductCheck.checked = readStore("kidsproduct", false) === true;
 
-  if (kidsModeToggle) kidsModeToggle.checked = kidsLead;
   renderConditions();
-  updateKidsNote();
   renderHistory();
 }
 
@@ -1233,14 +1443,12 @@ function openAuth(mode) {
 
   authTitle.textContent = signup ? "Create a profile" : "Sign in";
   authSub.textContent = signup
-    ? "Keep your conditions and scan history together, and switch between people using the same browser."
-    : "Welcome back. Your conditions and history are waiting where you left them.";
+    ? "Save your conditions and scan history on this device."
+    : "Welcome back.";
   authSubmit.textContent = signup ? "Create profile" : "Sign in";
   authSwitchText.textContent = signup ? "Already have a profile here?" : "No profile on this device yet?";
   authSwitch.textContent = signup ? "Sign in" : "Create one";
-  authPasswordHint.textContent = signup
-    ? "At least 8 characters. Used only to separate profiles on this device."
-    : "There is no password reset for local profiles.";
+  authPasswordHint?.classList.add("hidden");
   authNameRow.classList.toggle("hidden", !signup);
   authPassword.setAttribute("autocomplete", signup ? "new-password" : "current-password");
 
@@ -1281,18 +1489,10 @@ function renderAccount() {
    Events
    ———————————————————————————————————————— */
 
-yesFoodBtn?.addEventListener("click", showScanStep);
-noFoodBtn?.addEventListener("click", showNotFoodStep);
-backToHomeBtn?.addEventListener("click", () => {
-  location.hash = "#/";
-});
-backFromScanBtn?.addEventListener("click", showFoodStep);
-backFromNotFoodBtn?.addEventListener("click", showFoodStep);
-
 scanBtn?.addEventListener("click", () => imageInput.click());
 imageInput?.addEventListener("change", () => {
   const file = imageInput.files?.[0];
-  if (file) processImageFile(file);
+  if (file) stageFile(file);
 });
 
 clearPreviewBtn?.addEventListener("click", () => {
@@ -1303,9 +1503,18 @@ clearPreviewBtn?.addEventListener("click", () => {
 pasteToggleBtn?.addEventListener("click", () => {
   pastePanel.classList.toggle("hidden");
   if (!pastePanel.classList.contains("hidden")) pasteText?.focus();
+  updateCreateButton();
 });
 
+pasteText?.addEventListener("input", updateCreateButton);
 analyzeTextBtn?.addEventListener("click", analyzePastedText);
+pasteText?.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    e.preventDefault();
+    createFullReport();
+  }
+});
+createReportBtn?.addEventListener("click", createFullReport);
 
 if (dropZone) {
   ["dragenter", "dragover"].forEach((evt) =>
@@ -1322,7 +1531,7 @@ if (dropZone) {
   );
   dropZone.addEventListener("drop", (e) => {
     const file = e.dataTransfer?.files?.[0];
-    if (file) processImageFile(file);
+    if (file) stageFile(file);
   });
   dropZone.addEventListener("click", () => imageInput.click());
   dropZone.addEventListener("keydown", (e) => {
@@ -1333,10 +1542,19 @@ if (dropZone) {
   });
 }
 
-kidsModeToggle?.addEventListener("change", () => {
-  kidsLead = Boolean(kidsModeToggle.checked);
-  writeStore("kidslead", kidsLead);
-  updateKidsNote();
+kidsProductCheck?.addEventListener("change", () => {
+  writeStore("kidsproduct", Boolean(kidsProductCheck.checked));
+  refreshReport();
+});
+
+conditionSelect?.addEventListener("toggle", () => {
+  conditionSelect.classList.toggle("is-open", Boolean(conditionSelect.open));
+});
+
+document.addEventListener("pointerdown", (e) => {
+  if (!conditionSelect?.open) return;
+  if (e.target.closest("#conditionSelect")) return;
+  setConditionMenuOpen(false);
 });
 
 historyTab?.addEventListener("click", openHistory);
@@ -1384,11 +1602,6 @@ menuSignOut?.addEventListener("click", () => {
   profileMenu.classList.add("hidden");
   Auth.signOut();
   toast("Signed out — back to guest scans");
-});
-
-sideAuthBtn?.addEventListener("click", () => {
-  if (Auth.current()) renderAccount();
-  else openAuth("signup");
 });
 
 authSwitch?.addEventListener("click", () => openAuth(authMode === "signup" ? "signin" : "signup"));
@@ -1439,6 +1652,7 @@ document.addEventListener("keydown", (e) => {
   closeAuth();
   accountBackdrop.classList.remove("is-open");
   profileMenu.classList.add("hidden");
+  setConditionMenuOpen(false);
 });
 
 /* Re-scope everything whenever the signed-in profile changes. */
@@ -1456,4 +1670,5 @@ renderConditionCover();
 renderKidsAgeList();
 refreshIdentity();
 loadScopedState();
+updateCreateButton();
 applyRoute();

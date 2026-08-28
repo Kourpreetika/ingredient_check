@@ -18,14 +18,15 @@
 
 /* Shared term lists — several conditions warn about the same families. */
 const ADDED_SUGAR_TERMS = [
-  "sugar", "sucrose", "cane sugar", "brown sugar", "caster sugar", "icing sugar",
-  "demerara", "muscovado", "invert sugar", "invert syrup", "golden syrup",
-  "glucose syrup", "liquid glucose", "glucose solids", "glucose-fructose syrup",
-  "corn syrup", "corn syrup solids", "high fructose corn syrup", "hfcs",
-  "fructose", "crystalline fructose", "dextrose", "maltose", "malt extract",
-  "malt syrup", "barley malt", "rice syrup", "brown rice syrup", "tapioca syrup",
-  "molasses", "treacle", "honey", "jaggery", "palm sugar", "coconut sugar",
-  "date syrup", "agave syrup", "agave nectar", "fruit juice concentrate",
+  "sugar", "refined sugar", "sucrose", "cane sugar", "brown sugar", "caster sugar",
+  "castor sugar", "icing sugar", "powdered sugar", "demerara", "muscovado",
+  "invert sugar", "invert syrup", "golden syrup", "glucose", "glucose syrup", "liquid glucose",
+  "glucose solids", "glucose-fructose syrup", "corn syrup", "corn syrup solids",
+  "high fructose corn syrup", "hfcs", "fructose", "crystalline fructose",
+  "dextrose", "maltose", "malt extract", "malt syrup", "barley malt",
+  "rice syrup", "brown rice syrup", "tapioca syrup", "molasses", "treacle",
+  "honey", "jaggery", "gur", "palm sugar", "coconut sugar", "date syrup",
+  "agave syrup", "agave nectar", "fruit juice concentrate", "apple juice concentrate",
   "sweetened condensed milk", "condensed milk", "sugar syrup", "caramel syrup",
 ];
 
@@ -36,8 +37,9 @@ const SUGAR_NEGATIONS = [
 
 const REFINED_STARCH_TERMS = [
   "maltodextrin", "modified starch", "modified corn starch", "modified maize starch",
-  "modified tapioca starch", "dextrin", "resistant dextrin", "refined wheat flour",
-  "maida", "white flour", "rice flour", "corn starch", "maize starch",
+  "modified tapioca starch", "modified food starch", "dextrin", "resistant dextrin",
+  "refined wheat flour", "maida", "maida flour", "white flour", "wheat flour",
+  "rice flour", "corn starch", "maize starch", "corn flour", "maize flour",
   "potato starch", "tapioca starch",
 ];
 
@@ -45,26 +47,34 @@ const TRANS_FAT_TERMS = [
   "hydrogenated", "partially hydrogenated", "hydrogenated vegetable oil",
   "hydrogenated palm oil", "vanaspati", "dalda", "shortening", "margarine",
   "interesterified fat", "interesterified vegetable fat", "trans fat",
+  "transfat", "phvo",
 ];
 
 const SODIUM_TERMS = [
-  "salt", "iodised salt", "iodized salt", "table salt", "sea salt", "rock salt",
+  "salt", "edible common salt", "common salt", "iodised salt", "iodized salt",
+  "table salt", "sea salt", "rock salt", "sendha namak", "black salt", "kala namak",
   "sodium chloride", "brine", "celery salt", "garlic salt", "onion salt",
-  "soy sauce", "sodium bicarbonate", "baking soda", "sodium carbonate", "e500",
+  "soy sauce", "soya sauce",
+];
+
+const SODIUM_ADDITIVE_TERMS = [
+  "sodium bicarbonate", "baking soda", "baking powder", "sodium carbonate", "e500",
   "sodium citrate", "e331", "sodium lactate", "e325", "sodium diacetate",
+  "disodium phosphate", "e339", "sodium acid pyrophosphate", "e450",
 ];
 
 const FLAVOUR_ENHANCER_TERMS = [
   "monosodium glutamate", "msg", "e621", "disodium inosinate", "e631",
   "disodium guanylate", "e627", "disodium ribonucleotides", "e635",
   "hydrolysed vegetable protein", "hydrolyzed vegetable protein", "hvp",
-  "yeast extract", "autolysed yeast", "autolyzed yeast extract", "flavour enhancer",
-  "flavor enhancer",
+  "hydrolysed plant protein", "yeast extract", "autolysed yeast",
+  "autolyzed yeast extract", "flavour enhancer", "flavor enhancer",
+  "disodium 5'-ribonucleotides",
 ];
 
 const CURED_MEAT_TERMS = [
   "sodium nitrite", "e250", "sodium nitrate", "e251", "potassium nitrate", "e252",
-  "potassium nitrite", "e249", "curing salt", "saltpetre",
+  "potassium nitrite", "e249", "curing salt", "saltpetre", "saltpeter",
 ];
 
 const SYNTHETIC_COLOUR_TERMS = [
@@ -73,7 +83,10 @@ const SYNTHETIC_COLOUR_TERMS = [
   "ponceau", "e124", "erythrosine", "e127", "allura red", "e129", "red 40",
   "patent blue", "e131", "indigo carmine", "e132", "brilliant blue", "e133",
   "blue 1", "green s", "e142", "fast green", "e143", "brilliant black", "e151",
+  "sunset yellow fcf", "ponceau 4r", "brilliant blue fcf",
   "artificial colour", "artificial color", "synthetic food colour",
+  "synthetic food color", "permitted synthetic food colour",
+  "permitted synthetic food color",
 ];
 
 const BENZOATE_TERMS = [
@@ -103,16 +116,7 @@ const ARTIFICIAL_SWEETENER_TERMS = [
 
 const CAFFEINE_TERMS = [
   "caffeine", "guarana", "coffee extract", "green coffee extract", "kola nut",
-  "energy blend", "cocoa solids",
-];
-
-const PHOSPHATE_TERMS = [
-  "phosphoric acid", "e338", "sodium phosphate", "monosodium phosphate",
-  "disodium phosphate", "trisodium phosphate", "e339", "potassium phosphate",
-  "e340", "calcium phosphate", "e341", "diphosphates", "e450",
-  "sodium acid pyrophosphate", "tetrasodium pyrophosphate",
-  "sodium tripolyphosphate", "triphosphates", "e451", "polyphosphates", "e452",
-  "sodium aluminium phosphate", "added phosphate",
+  "cola nut", "energy blend",
 ];
 
 const POLYOL_TERMS = [
@@ -126,7 +130,34 @@ const EMULSIFIER_TERMS = [
   "polysorbate 65", "e436", "carboxymethylcellulose", "carboxymethyl cellulose",
   "cellulose gum", "cmc", "e466", "guar gum", "e412", "xanthan gum", "e415",
   "locust bean gum", "e410", "sodium stearoyl lactylate", "e481",
-  "mono and diglycerides", "e471",
+  "mono and diglycerides", "mono- and diglycerides", "e471",
+  "polyglycerol", "e475", "datem", "e472e",
+];
+
+const SATURATED_FAT_TERMS = [
+  "palm oil", "palm olein", "palmolein", "refined palmolein", "palm kernel oil",
+  "coconut oil", "coconut fat", "copra oil", "ghee", "butter", "butterfat",
+  "butter fat", "cream", "cocoa butter", "vegetable fat", "edible vegetable fat",
+];
+
+const PHOSPHATE_TERMS = [
+  "phosphoric acid", "e338", "phosphates", "phosphate",
+  "sodium phosphate", "disodium phosphate", "trisodium phosphate", "e339",
+  "potassium phosphate", "e340", "calcium phosphate", "tricalcium phosphate", "e341",
+  "magnesium phosphate", "e343", "sodium acid pyrophosphate", "disodium pyrophosphate",
+  "e450", "sodium tripolyphosphate", "pentasodium triphosphate", "e451",
+  "sodium hexametaphosphate", "e452", "bone phosphate", "e542",
+];
+
+const POTASSIUM_SALT_TERMS = [
+  "potassium chloride", "e508", "salt substitute", "low sodium salt", "lo salt",
+  "losalt", "potassium citrate", "e332", "potassium lactate", "e326",
+];
+
+const ALUMINUM_TERMS = [
+  "sodium aluminosilicate", "sodium aluminium silicate", "e554",
+  "sodium aluminum phosphate", "sodium aluminium phosphate", "e541",
+  "aluminium sulphate", "aluminum sulfate", "e520",
 ];
 
 /**
@@ -137,13 +168,13 @@ const EMULSIFIER_TERMS = [
  */
 const CONDITION_LIBRARY = [
   {
-    id: "diabetes",
-    label: "Diabetes",
-    aka: "Type 1, type 2, prediabetes",
-    focus: "Sugars and refined starches that move blood glucose fast.",
+    id: "diabetes-a",
+    label: "Diabetes Type A",
+    aka: "Type A diabetes",
+    focus: "Sugars and syrups that push blood glucose up fast.",
     groups: [
       {
-        id: "diabetes-sugars",
+        id: "diabetes-a-sugars",
         title: "Added sugars & syrups",
         level: "avoid",
         why: "These are absorbed within minutes and push blood glucose up sharply. On an ingredients list they are often split across three or four names so no single one appears near the top.",
@@ -151,21 +182,56 @@ const CONDITION_LIBRARY = [
         negations: SUGAR_NEGATIONS,
       },
       {
-        id: "diabetes-starch",
+        id: "diabetes-a-fat",
+        title: "Trans & hydrogenated fats",
+        level: "avoid",
+        why: "They add to the cardiovascular risk that already runs higher with diabetes.",
+        terms: TRANS_FAT_TERMS,
+      },
+      {
+        id: "diabetes-a-sweeteners",
+        title: "Artificial sweeteners",
+        level: "limit",
+        why: "They do not raise glucose directly, but they keep the taste for sweetness going and almost always sit in a heavily processed product.",
+        terms: ARTIFICIAL_SWEETENER_TERMS,
+      },
+    ],
+    nutrition: [
+      { key: "sugar", limit: 10, unit: "g", why: "More than about 10g of sugar per 100g makes this a high-sugar product." },
+    ],
+    guidance: "Check the order of the ingredients list — sugars in the first three positions mean the product is mostly sugar by weight.",
+  },
+
+  {
+    id: "diabetes-b",
+    label: "Diabetes Type B",
+    aka: "Type B diabetes",
+    focus: "Sugars, refined starches and trans fats that worsen insulin resistance.",
+    groups: [
+      {
+        id: "diabetes-b-sugars",
+        title: "Added sugars & syrups",
+        level: "avoid",
+        why: "These are absorbed within minutes and push blood glucose up sharply. On an ingredients list they are often split across three or four names so no single one appears near the top.",
+        terms: ADDED_SUGAR_TERMS,
+        negations: SUGAR_NEGATIONS,
+      },
+      {
+        id: "diabetes-b-starch",
         title: "Fast-digesting starches",
         level: "avoid",
         why: "They do not taste sweet, but they break down into glucose as fast as table sugar — maltodextrin actually has a higher glycaemic index than sucrose.",
         terms: REFINED_STARCH_TERMS,
       },
       {
-        id: "diabetes-fat",
+        id: "diabetes-b-fat",
         title: "Trans & hydrogenated fats",
         level: "avoid",
         why: "They worsen insulin resistance and add to the cardiovascular risk that already runs higher with diabetes.",
         terms: TRANS_FAT_TERMS,
       },
       {
-        id: "diabetes-sweeteners",
+        id: "diabetes-b-sweeteners",
         title: "Artificial sweeteners",
         level: "limit",
         why: "They do not raise glucose directly, but they keep the taste for sweetness going and almost always sit in a heavily processed product.",
@@ -180,7 +246,7 @@ const CONDITION_LIBRARY = [
 
   {
     id: "hypertension",
-    label: "High blood pressure",
+    label: "High BP",
     aka: "Hypertension",
     focus: "Sodium in all its forms, plus liquorice.",
     groups: [
@@ -190,6 +256,7 @@ const CONDITION_LIBRARY = [
         level: "avoid",
         why: "Sodium holds water in the bloodstream, which raises the volume the heart has to push against. Most dietary sodium comes from packaged food, not the salt shaker.",
         terms: SODIUM_TERMS,
+        negations: ["salt free", "salt-free", "no added salt", "without salt", "unsalted"],
       },
       {
         id: "bp-enhancers",
@@ -217,7 +284,12 @@ const CONDITION_LIBRARY = [
         title: "Sodium-based preservatives",
         level: "limit",
         why: "Each adds a little more sodium. Individually small, they add up across a day of packaged food.",
-        terms: ["sodium benzoate", "e211", "sodium metabisulphite", "e223", "sodium propionate", "e281", "sodium erythorbate", "e316", "sodium nitrite", "sodium sorbate"],
+        terms: [
+          ...SODIUM_ADDITIVE_TERMS,
+          "sodium benzoate", "e211", "sodium metabisulphite", "e223",
+          "sodium propionate", "e281", "sodium erythorbate", "e316",
+          "sodium nitrite", "sodium sorbate",
+        ],
       },
       {
         id: "bp-caffeine",
@@ -235,7 +307,7 @@ const CONDITION_LIBRARY = [
 
   {
     id: "hypotension",
-    label: "Low blood pressure",
+    label: "Low BP",
     aka: "Hypotension",
     focus: "Alcohol, diuretics and big refined-carb loads.",
     inverts: "hypertension",
@@ -279,97 +351,251 @@ const CONDITION_LIBRARY = [
     id: "heart",
     label: "Heart disease",
     aka: "Cardiac / cholesterol concerns",
-    focus: "Trans fats, tropical saturated fats, nitrites and salt.",
+    focus: "Trans fats, salt, tropical saturated fats and cured meats.",
     groups: [
       {
         id: "heart-trans",
         title: "Trans & hydrogenated fats",
         level: "avoid",
-        why: "Trans fats raise LDL cholesterol and lower HDL at the same time — the only fat known to move both in the wrong direction. There is no safe intake with existing heart disease.",
+        why: "Trans fats raise LDL cholesterol and lower HDL at the same time — the only fat known to move both in the wrong direction. There is no safe intake once heart disease is already present.",
         terms: TRANS_FAT_TERMS,
       },
       {
-        id: "heart-tropical",
-        title: "Tropical & animal saturated fats",
-        level: "limit",
-        why: "Palm and palm kernel oil are close to 50% saturated fat and are the default cheap fat in biscuits, instant noodles and spreads.",
-        terms: ["palm oil", "palmolein", "palm kernel oil", "edible vegetable fat", "vegetable fat", "butter oil", "milk fat", "tallow", "lard", "coconut oil"],
+        id: "heart-sodium",
+        title: "Salt & sodium compounds",
+        level: "avoid",
+        why: "Sodium raises blood volume and blood pressure, which is extra work for a damaged heart. Most of it comes from packaged food, not the salt shaker.",
+        terms: SODIUM_TERMS,
+        negations: ["salt free", "salt-free", "no added salt", "without salt", "unsalted"],
+      },
+      {
+        id: "heart-enhancers",
+        title: "Flavour enhancers (hidden sodium)",
+        level: "avoid",
+        why: "MSG and the ribonucleotide salts are sodium compounds. They do not taste salty, so the sodium load is easy to miss.",
+        terms: FLAVOUR_ENHANCER_TERMS,
       },
       {
         id: "heart-cured",
         title: "Cured-meat preservatives",
         level: "avoid",
-        why: "Nitrites form N-nitroso compounds during cooking, and processed meat intake tracks closely with cardiovascular events.",
+        why: "Nitrite-cured meats are consistently linked with higher heart-disease risk, and they arrive with a very high salt load.",
         terms: CURED_MEAT_TERMS,
       },
       {
-        id: "heart-sodium",
-        title: "Salt & flavour enhancers",
+        id: "heart-saturated",
+        title: "Tropical & dairy saturated fats",
         level: "limit",
-        why: "Sodium raises blood pressure, which is the single biggest load on a damaged heart.",
-        terms: [...SODIUM_TERMS, ...FLAVOUR_ENHANCER_TERMS],
+        why: "Palm, palmolein, coconut and ghee are high in saturated fat, which raises LDL. They are the default frying and bakery fats on Indian packs — not trans fat, but still worth keeping down.",
+        terms: SATURATED_FAT_TERMS,
       },
       {
-        id: "heart-antioxidants",
-        title: "Synthetic fat antioxidants",
+        id: "heart-sugars",
+        title: "Added sugars & syrups",
         level: "limit",
-        why: "TBHQ, BHA and BHT are added to keep cheap frying fats from going rancid — their presence signals a product built on reheated industrial oil.",
-        terms: SYNTHETIC_ANTIOXIDANT_TERMS,
-      },
-      {
-        id: "heart-sugar",
-        title: "Added sugars",
-        level: "limit",
-        why: "High added-sugar intake raises triglycerides independently of fat intake.",
+        why: "Frequent added-sugar intake is tied to higher triglycerides and to the weight gain that worsens cardiac risk.",
         terms: ADDED_SUGAR_TERMS,
         negations: SUGAR_NEGATIONS,
       },
+      {
+        id: "heart-caffeine",
+        title: "Caffeine loads",
+        level: "limit",
+        why: "Large caffeine doses can raise heart rate and blood pressure for a few hours. Energy drinks are the usual problem, not a cup of tea.",
+        terms: CAFFEINE_TERMS,
+      },
     ],
     nutrition: [
-      { key: "fat", limit: 17.5, unit: "g", why: "Over 17.5g fat per 100g is a high-fat product under standard front-of-pack rules." },
+      { key: "sodium", limit: 0.6, unit: "g", why: "Above roughly 0.6g sodium (1.5g salt) per 100g is a high-salt food for a cardiac diet." },
+      { key: "fat", limit: 17.5, unit: "g", why: "More than about 17.5g fat per 100g counts as a high-fat product." },
     ],
-    guidance: "\"Edible vegetable oil\" without a named oil usually means palm — the pack does not have to say so.",
+    guidance: "Hydrogenated fat on the ingredients list matters more than the cholesterol number on the panel — dietary cholesterol is a weaker driver than trans fat and salt.",
   },
 
   {
     id: "kidney",
     label: "Kidney disease",
-    aka: "CKD, reduced kidney function",
+    aka: "Chronic kidney disease / CKD",
     focus: "Added phosphates, potassium salts and sodium.",
     groups: [
       {
         id: "kidney-phosphate",
         title: "Added phosphates",
         level: "avoid",
-        why: "Added phosphate salts are absorbed almost completely, unlike the phosphorus bound up in natural foods. Failing kidneys cannot clear the excess, and it pulls calcium out of bone.",
+        why: "Additive phosphates are absorbed far more completely than the phosphorus in whole food. Damaged kidneys cannot clear the extra load, which pulls calcium from bone and calcifies vessels. Colas, processed cheese and reconstituted meats are the usual sources.",
         terms: PHOSPHATE_TERMS,
-      },
-      {
-        id: "kidney-potassium",
-        title: "Potassium additives & salt substitutes",
-        level: "avoid",
-        why: "\"Low sodium\" and \"lite\" salts swap sodium for potassium. That is helpful for blood pressure but genuinely dangerous in kidney disease, where potassium builds up and affects heart rhythm.",
-        terms: ["potassium chloride", "e508", "low sodium salt", "lite salt", "light salt", "salt substitute", "potassium lactate", "e326", "potassium citrate", "e332", "potassium bicarbonate", "e501", "potassium sorbate", "e202"],
       },
       {
         id: "kidney-sodium",
         title: "Salt & sodium compounds",
         level: "avoid",
-        why: "Sodium drives fluid retention and blood pressure, both of which speed up the loss of remaining kidney function.",
-        terms: [...SODIUM_TERMS, ...FLAVOUR_ENHANCER_TERMS],
+        why: "Sodium drives fluid retention and blood pressure, both of which a failing kidney handles poorly. Packaged snacks and instant noodles are the largest everyday source.",
+        terms: SODIUM_TERMS,
+        negations: ["salt free", "salt-free", "no added salt", "without salt", "unsalted"],
       },
       {
-        id: "kidney-aluminium",
+        id: "kidney-enhancers",
+        title: "Flavour enhancers (hidden sodium)",
+        level: "avoid",
+        why: "Every one of these is a sodium salt. They add to the daily sodium cap without tasting salty.",
+        terms: FLAVOUR_ENHANCER_TERMS,
+      },
+      {
+        id: "kidney-potassium",
+        title: "Potassium salt substitutes",
+        level: "avoid",
+        why: "Low-sodium salt is usually potassium chloride. When the kidneys cannot excrete potassium, that swap is dangerous — it can raise blood potassium enough to affect heart rhythm.",
+        terms: POTASSIUM_SALT_TERMS,
+      },
+      {
+        id: "kidney-aluminum",
         title: "Aluminium additives",
+        level: "avoid",
+        why: "Aluminium is cleared by the kidneys. Anti-caking agents and some baking powders leave a load that builds up when filtration is reduced.",
+        terms: ALUMINUM_TERMS,
+      },
+      {
+        id: "kidney-cured",
+        title: "Cured-meat preservatives",
         level: "limit",
-        why: "Aluminium is cleared by the kidneys and accumulates when they are impaired.",
-        terms: ["aluminium", "aluminum", "sodium aluminium silicate", "e554", "aluminium silicate", "e559", "potassium alum", "e522", "aluminium sulphate", "e520", "sodium aluminium phosphate"],
+        why: "These products combine high salt with added phosphates. Both are hard on remaining kidney function.",
+        terms: CURED_MEAT_TERMS,
+      },
+      {
+        id: "kidney-caffeine",
+        title: "Caffeine loads",
+        level: "limit",
+        why: "Caffeine is a mild diuretic and can raise blood pressure. Energy drinks add a phosphate load on top.",
+        terms: CAFFEINE_TERMS,
+      },
+    ],
+    nutrition: [
+      { key: "sodium", limit: 0.6, unit: "g", why: "Above roughly 0.6g sodium per 100g is high for a kidney-restricted diet." },
+    ],
+    guidance: "The phosphate to worry about is the additive, not the phosphorus naturally in dal or milk. If the ingredients list a number from 338 to 452, that is the one.",
+  },
+
+  {
+    id: "pcos",
+    label: "PCOD",
+    aka: "Polycystic ovary syndrome",
+    focus: "Anything that worsens insulin resistance or inflammation.",
+    groups: [
+      {
+        id: "pcos-sugars",
+        title: "Added sugars & syrups",
+        level: "avoid",
+        why: "Insulin resistance sits underneath most PCOS symptoms. Repeated glucose spikes drive insulin higher, and high insulin pushes the ovaries to make more androgen.",
+        terms: ADDED_SUGAR_TERMS,
+        negations: SUGAR_NEGATIONS,
+      },
+      {
+        id: "pcos-starch",
+        title: "Refined starches",
+        level: "avoid",
+        why: "Maida and modified starches behave like sugar once digested, without the sweet taste that would warn you.",
+        terms: REFINED_STARCH_TERMS,
+      },
+      {
+        id: "pcos-fat",
+        title: "Trans & hydrogenated fats",
+        level: "avoid",
+        why: "Trans fats worsen both insulin resistance and the low-grade inflammation that runs alongside PCOS.",
+        terms: TRANS_FAT_TERMS,
+      },
+      {
+        id: "pcos-palm",
+        title: "Palm oil & palmolein",
+        level: "limit",
+        why: "Not trans fat, but a concentrated saturated fat used in most packaged Indian snacks. Frequent intake works against insulin sensitivity.",
+        terms: ["palm oil", "palm olein", "palmolein", "refined palmolein", "palm kernel oil"],
+      },
+      {
+        id: "pcos-sweeteners",
+        title: "Artificial sweeteners",
+        level: "limit",
+        why: "Useful for cutting sugar in the short term, but they maintain the sweet preference that makes lower-sugar eating harder to hold.",
+        terms: ARTIFICIAL_SWEETENER_TERMS,
+      },
+      {
+        id: "pcos-ultraprocessed",
+        title: "Ultra-processed markers",
+        level: "limit",
+        why: "Colours, MSG and artificial flavour are not individually harmful for PCOS, but together they reliably mark a product engineered to be over-eaten.",
+        terms: [...SYNTHETIC_COLOUR_TERMS, ...FLAVOUR_ENHANCER_TERMS, "artificial flavour", "artificial flavor", "nature identical flavouring", "nature identical flavoring", "nature identical flavouring substances"],
+      },
+      {
+        id: "pcos-caffeine",
+        title: "Caffeine & energy blends",
+        level: "limit",
+        why: "Large caffeine doses raise cortisol, which works against blood-sugar stability.",
+        terms: CAFFEINE_TERMS,
+      },
+    ],
+    nutrition: [
+      { key: "sugar", limit: 10, unit: "g", why: "Over about 10g sugar per 100g is a meaningful glucose load in one sitting." },
+    ],
+    guidance: "Sugar paired with fibre, protein or fat spikes glucose far less than sugar on its own — which is why a biscuit and a fruit with nuts are not equivalent.",
+  },
+  {
+    id: "asthma",
+    label: "Asthma",
+    aka: "Also sulphite sensitivity",
+    focus: "Sulphites, azo dyes and benzoates.",
+    groups: [
+      {
+        id: "asthma-sulphites",
+        title: "Sulphites",
+        level: "avoid",
+        why: "Sulphites release sulphur dioxide gas in the stomach. Breathing it in can trigger bronchospasm within minutes, and roughly 5–10% of people with asthma react. Dried fruit, wine, packaged juice and prawns are the usual sources.",
+        terms: SULPHITE_TERMS,
+      },
+      {
+        id: "asthma-colours",
+        title: "Azo dyes & synthetic colours",
+        level: "avoid",
+        why: "Tartrazine is the best documented trigger, and cross-reaction with other azo dyes is common in people who react to aspirin.",
+        terms: SYNTHETIC_COLOUR_TERMS,
+      },
+      {
+        id: "asthma-benzoates",
+        title: "Benzoate preservatives",
+        level: "avoid",
+        why: "Benzoates are a recognised trigger for both asthma and urticaria in sensitive people, and they turn up in nearly every soft drink and squash.",
+        terms: BENZOATE_TERMS,
+      },
+      {
+        id: "asthma-enhancers",
+        title: "Flavour enhancers",
+        level: "limit",
+        why: "MSG-triggered asthma is rarer than once believed, but it is still reported in a small group of people with severe asthma.",
+        terms: FLAVOUR_ENHANCER_TERMS,
+      },
+      {
+        id: "asthma-antioxidants",
+        title: "Synthetic antioxidants",
+        level: "limit",
+        why: "BHA and BHT are occasional triggers in the same people who react to benzoates and dyes.",
+        terms: SYNTHETIC_ANTIOXIDANT_TERMS,
+      },
+      {
+        id: "asthma-class2",
+        title: "Unnamed class II preservatives",
+        level: "limit",
+        why: "Indian packs often hide the specific preservative behind this phrase. It can mean benzoate, sorbate or sulphite — if a number is printed in brackets, that is the one that counts.",
+        terms: ["class ii preservative", "class 2 preservative", "class ii preservatives", "permitted class ii preservative"],
+      },
+      {
+        id: "asthma-natural-colours",
+        title: "Reactive natural colours",
+        level: "limit",
+        why: "Carmine and annatto are natural but are still among the more allergenic colourings.",
+        terms: ["carmine", "cochineal", "e120", "carminic acid", "annatto", "e160b"],
       },
     ],
     nutrition: [],
-    guidance: "Phosphate additives are not always declared by name — \"raising agent\", \"stabiliser\" and \"emulsifying salts\" in processed cheese and cola are usually phosphates.",
+    guidance: "Dried fruit that stays bright orange has been sulphited. Unsulphited apricots go brown — that is the one you want.",
   },
-
   {
     id: "gut",
     label: "Sensitive gut",
@@ -423,114 +649,6 @@ const CONDITION_LIBRARY = [
     guidance: "\"Sugar-free\" is the label to be most careful with — it usually means polyols, which are harder on a sensitive gut than sugar was.",
   },
 
-  {
-    id: "asthma",
-    label: "Asthma",
-    aka: "Also sulphite sensitivity",
-    focus: "Sulphites, azo dyes and benzoates.",
-    groups: [
-      {
-        id: "asthma-sulphites",
-        title: "Sulphites",
-        level: "avoid",
-        why: "Sulphites release sulphur dioxide gas in the stomach. Breathing it in can trigger bronchospasm within minutes, and roughly 5–10% of people with asthma react. Dried fruit, wine, packaged juice and prawns are the usual sources.",
-        terms: SULPHITE_TERMS,
-      },
-      {
-        id: "asthma-colours",
-        title: "Azo dyes & synthetic colours",
-        level: "avoid",
-        why: "Tartrazine is the best documented trigger, and cross-reaction with other azo dyes is common in people who react to aspirin.",
-        terms: SYNTHETIC_COLOUR_TERMS,
-      },
-      {
-        id: "asthma-benzoates",
-        title: "Benzoate preservatives",
-        level: "avoid",
-        why: "Benzoates are a recognised trigger for both asthma and urticaria in sensitive people, and they turn up in nearly every soft drink and squash.",
-        terms: BENZOATE_TERMS,
-      },
-      {
-        id: "asthma-enhancers",
-        title: "Flavour enhancers",
-        level: "limit",
-        why: "MSG-triggered asthma is rarer than once believed, but it is still reported in a small group of people with severe asthma.",
-        terms: FLAVOUR_ENHANCER_TERMS,
-      },
-      {
-        id: "asthma-antioxidants",
-        title: "Synthetic antioxidants",
-        level: "limit",
-        why: "BHA and BHT are occasional triggers in the same people who react to benzoates and dyes.",
-        terms: SYNTHETIC_ANTIOXIDANT_TERMS,
-      },
-      {
-        id: "asthma-natural-colours",
-        title: "Reactive natural colours",
-        level: "limit",
-        why: "Carmine and annatto are natural but are still among the more allergenic colourings.",
-        terms: ["carmine", "cochineal", "e120", "carminic acid", "annatto", "e160b"],
-      },
-    ],
-    nutrition: [],
-    guidance: "Dried fruit that stays bright orange has been sulphited. Unsulphited apricots go brown — that is the one you want.",
-  },
-
-  {
-    id: "pcos",
-    label: "PCOS / PCOD",
-    aka: "Polycystic ovary syndrome",
-    focus: "Anything that worsens insulin resistance or inflammation.",
-    groups: [
-      {
-        id: "pcos-sugars",
-        title: "Added sugars & syrups",
-        level: "avoid",
-        why: "Insulin resistance sits underneath most PCOS symptoms. Repeated glucose spikes drive insulin higher, and high insulin pushes the ovaries to make more androgen.",
-        terms: ADDED_SUGAR_TERMS,
-        negations: SUGAR_NEGATIONS,
-      },
-      {
-        id: "pcos-starch",
-        title: "Refined starches",
-        level: "avoid",
-        why: "Maida and modified starches behave like sugar once digested, without the sweet taste that would warn you.",
-        terms: REFINED_STARCH_TERMS,
-      },
-      {
-        id: "pcos-fat",
-        title: "Trans & hydrogenated fats",
-        level: "avoid",
-        why: "Trans fats worsen both insulin resistance and the low-grade inflammation that runs alongside PCOS.",
-        terms: [...TRANS_FAT_TERMS, "palm oil", "palmolein"],
-      },
-      {
-        id: "pcos-sweeteners",
-        title: "Artificial sweeteners",
-        level: "limit",
-        why: "Useful for cutting sugar in the short term, but they maintain the sweet preference that makes lower-sugar eating harder to hold.",
-        terms: ARTIFICIAL_SWEETENER_TERMS,
-      },
-      {
-        id: "pcos-ultraprocessed",
-        title: "Ultra-processed markers",
-        level: "limit",
-        why: "Colours, MSG and artificial flavour are not individually harmful for PCOS, but together they reliably mark a product engineered to be over-eaten.",
-        terms: [...SYNTHETIC_COLOUR_TERMS, ...FLAVOUR_ENHANCER_TERMS, "artificial flavour", "artificial flavor", "nature identical flavouring"],
-      },
-      {
-        id: "pcos-caffeine",
-        title: "Caffeine & energy blends",
-        level: "limit",
-        why: "Large caffeine doses raise cortisol, which works against blood-sugar stability.",
-        terms: CAFFEINE_TERMS,
-      },
-    ],
-    nutrition: [
-      { key: "sugar", limit: 10, unit: "g", why: "Over about 10g sugar per 100g is a meaningful glucose load in one sitting." },
-    ],
-    guidance: "Sugar paired with fibre, protein or fat spikes glucose far less than sugar on its own — which is why a biscuit and a fruit with nuts are not equivalent.",
-  },
 ];
 
 /**
@@ -600,7 +718,7 @@ const KIDS_SAFETY_RULES = [
     label: "High-sodium additives",
     minAge: 5,
     severity: "moderate",
-    terms: [...SODIUM_TERMS, ...FLAVOUR_ENHANCER_TERMS],
+    terms: [...SODIUM_TERMS, ...SODIUM_ADDITIVE_TERMS, ...FLAVOUR_ENHANCER_TERMS],
     why: "A child's sodium limit is far below an adult's — around 2g of salt a day at ages 4–6. A single packet of savoury snacks can use most of it.",
   },
   {
@@ -652,11 +770,50 @@ function cdNormalize(text) {
 }
 
 /**
+ * Prefer the ingredients list when OCR captured the whole back of the pack.
+ * Nutrition tables repeat words like salt and sugars and would otherwise
+ * pollute the match.
+ */
+function extractLabelIngredients(labelText) {
+  const raw = String(labelText || "");
+  const match = raw.match(/ingredients?\s*[:\-]\s*([\s\S]+)/i);
+  if (!match) return raw;
+  const body = match[1].split(
+    /\b(?:nutritional?\s+information|nutrition\s+facts|allergen\s+information|contains\s*:|may\s+contain|manufactured\s+by|packed\s+by|marketed\s+by|storage\s+(?:instructions|conditions)|best\s+before|net\s+(?:wt|weight|quantity)|fssai|lic(?:ence|ense)\s+no)\b/i
+  )[0];
+  return (body || "").trim() || raw;
+}
+
+/**
  * Indian packs print "INS 621", EU packs print "E621", and OCR loves to insert
  * a space or a dot. Collapse all of those into one comparable form.
  */
 function cdCollapseCodes(text) {
-  return text.replace(/\b(?:ins|e)[\s.\-]?(\d{3}[a-z]?)\b/g, "e$1");
+  return text
+    .replace(/\b[il1]ns[\s.\-]?(\d{3}[a-z]?)\b/g, "e$1")
+    .replace(/\be[\s.\-]?(\d{3}[a-z]?)\b/g, "e$1");
+}
+
+/**
+ * Phrases that contain a watch-term but are not the thing we mean.
+ * Example: "whole wheat flour" contains "wheat flour"; "non-hydrogenated" contains "hydrogenated".
+ */
+const TERM_SKIP_AROUND = [
+  { term: "wheat flour", pattern: /whole(?:meal)?[\s-]+wheat[\s-]+flour/ },
+  { term: "wine", pattern: /wine[\s-]+vinegar/ },
+  { term: "beer", pattern: /(?:root|ginger)[\s-]+beer/ },
+  { term: "alcohol", pattern: /alcohol[\s-]+free|non[\s-]+alcoholic|cetyl[\s-]+alcohol|stearyl[\s-]+alcohol|benzyl[\s-]+alcohol/ },
+  { term: "hydrogenated", pattern: /(?:non|not|un)[\s-]+hydrogenated/ },
+  { term: "salt", pattern: /salt[\s-]*free|epsom[\s-]+salt|low[\s-]+sodium[\s-]+salt/ },
+  { term: "butter", pattern: /(?:peanut|almond|cashew|shea)\s+butter|butterscotch/ },
+  { term: "cream", pattern: /cream\s+of\s+tartar/ },
+];
+
+function cdIsSafeContext(text, start, end, term) {
+  const rule = TERM_SKIP_AROUND.find((r) => r.term === term);
+  if (!rule) return false;
+  const window = text.slice(Math.max(0, start - 28), Math.min(text.length, end + 28));
+  return rule.pattern.test(window);
 }
 
 const cdTermCache = new Map();
@@ -671,12 +828,12 @@ function cdTermRegex(term) {
   return re;
 }
 
-/** True when the match sits inside a phrase like "no added sugar". */
+/** True when the match sits inside a phrase like "no added sugar" or "non-hydrogenated". */
 function cdIsNegated(text, index, negations) {
-  if (!negations || negations.length === 0) return false;
   const before = text.slice(Math.max(0, index - 24), index);
-  const around = text.slice(Math.max(0, index - 24), index + 40);
   if (/\b(no|without|zero|free\s+from|reduced|low)\s+(added\s+)?$/.test(before)) return true;
+  if (!negations || negations.length === 0) return false;
+  const around = text.slice(Math.max(0, index - 24), index + 40);
   return negations.some((phrase) => around.includes(phrase));
 }
 
@@ -694,6 +851,7 @@ function cdMatchGroup(text, group) {
       const end = start + m[2].length;
       if (claimed.some(([s, e]) => start < e && end > s)) continue;
       if (cdIsNegated(text, start, group.negations)) continue;
+      if (cdIsSafeContext(text, start, end, term)) continue;
       claimed.push([start, end]);
       if (!hits.includes(term)) hits.push(term);
       break; // one mention of a term is enough to report it
@@ -711,7 +869,7 @@ function evaluateCondition(labelText, conditionId) {
   const condition = CONDITION_LIBRARY.find((c) => c.id === conditionId);
   if (!condition) return null;
 
-  const text = cdCollapseCodes(cdNormalize(labelText));
+  const text = cdCollapseCodes(cdNormalize(extractLabelIngredients(labelText)));
   if (!text) return null;
 
   const matchedGroups = [];
@@ -769,7 +927,7 @@ function looksLikeKidsProduct(labelText) {
  * Returns a minimum age, the groups that set it, and a plain-language rating.
  */
 function evaluateKidsSafety(labelText) {
-  const text = cdCollapseCodes(cdNormalize(labelText));
+  const text = cdCollapseCodes(cdNormalize(extractLabelIngredients(labelText)));
   const flags = [];
 
   for (const rule of KIDS_SAFETY_RULES) {
