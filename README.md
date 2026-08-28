@@ -37,7 +37,7 @@ ingredient_check/
 ├── condition-database.js  # Per-condition avoid lists, kids rules, matching engine
 ├── profile.js             # Local profiles and scoped storage
 ├── app.js                 # UI flow, OCR, report rendering, history
-└── img1.png … img5.png    # Reference imagery
+└── img1.png               # Hero imagery
 ```
 
 Scripts load in that order — the data files declare globals that `app.js` consumes.
