@@ -55,9 +55,17 @@ const analyzeTextBtn = $("analyzeTextBtn");
 const previewWrap = $("previewWrap");
 const previewImg = $("previewImg");
 const clearPreviewBtn = $("clearPreviewBtn");
-const progress = $("progress");
-const progressLabel = $("progressLabel");
-const resultBox = $("resultBox");
+const scanResultsBackdrop = $("scanResultsBackdrop");
+const scanResultsPanel = $("scanResultsPanel");
+const scanResultsTitle = $("scanResultsTitle");
+const scanResultsClose = $("scanResultsClose");
+const scanLoadingState = $("scanLoadingState");
+const scanLoadingPreview = $("scanLoadingPreview");
+const scanLoadingTitle = $("scanLoadingTitle");
+const scanLoadingSub = $("scanLoadingSub");
+const scanLoadingLabel = $("scanLoadingLabel");
+const scanProgressBar = $("scanProgressBar");
+const scanResultsBody = $("scanResultsBody");
 const kidsProductCheck = $("kidsProductCheck");
 const createReportBtn = $("createReportBtn");
 
@@ -125,6 +133,8 @@ let lastProductName = "";
 let authMode = "signup";
 let toastTimer = null;
 
+const SCAN_TRANSITION_MS = 320;
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -139,6 +149,133 @@ function toast(message) {
   toastEl.classList.add("is-open");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.remove("is-open"), 2600);
+}
+
+/* ————————————————————————————————————————
+   Modals
+   ———————————————————————————————————————— */
+
+function setBackdropOpen(backdrop, open) {
+  if (!backdrop) return;
+  backdrop.classList.toggle("is-open", open);
+  backdrop.setAttribute("aria-hidden", String(!open));
+}
+
+function bindBackdropDismiss(backdrop, onDismiss) {
+  backdrop?.addEventListener("click", (e) => {
+    if (e.target === backdrop) onDismiss();
+  });
+}
+
+function clearScanResults() {
+  closeScanResults();
+  scanLoadingState?.classList.add("hidden");
+  scanLoadingState?.classList.remove("is-leaving");
+  scanLoadingState?.setAttribute("aria-busy", "false");
+  if (scanResultsBody) {
+    scanResultsBody.innerHTML = "";
+    scanResultsBody.classList.add("hidden");
+    scanResultsBody.classList.remove("is-revealing");
+  }
+  if (scanResultsPanel) scanResultsPanel.classList.remove("is-loading", "is-report");
+  if (scanResultsTitle) scanResultsTitle.textContent = "Scan results";
+  if (scanLoadingPreview) {
+    scanLoadingPreview.classList.add("hidden");
+    scanLoadingPreview.removeAttribute("src");
+  }
+  if (scanProgressBar) scanProgressBar.style.width = "0%";
+  setScanModalBusy(false);
+}
+
+function setScanModalBusy(busy) {
+  scanResultsClose?.classList.toggle("hidden", busy);
+  scanResultsBackdrop?.classList.toggle("is-busy", busy);
+}
+
+function showScanLoading({ title = "Reading label", message = "Reading the label…" } = {}) {
+  if (scanResultsTitle) scanResultsTitle.textContent = title;
+  if (scanLoadingTitle) scanLoadingTitle.textContent = title;
+  if (scanLoadingLabel) scanLoadingLabel.textContent = message;
+  if (scanProgressBar) scanProgressBar.style.width = "8%";
+
+  if (scanLoadingPreview && currentObjectUrl) {
+    scanLoadingPreview.src = currentObjectUrl;
+    scanLoadingPreview.classList.remove("hidden");
+  } else if (scanLoadingPreview) {
+    scanLoadingPreview.classList.add("hidden");
+    scanLoadingPreview.removeAttribute("src");
+  }
+
+  scanResultsBody?.classList.add("hidden");
+  if (scanResultsBody) scanResultsBody.innerHTML = "";
+  scanLoadingState?.classList.remove("hidden", "is-leaving");
+  scanLoadingState?.setAttribute("aria-busy", "true");
+  scanResultsPanel?.classList.add("is-loading");
+  scanResultsPanel?.classList.remove("is-report");
+
+  setScanModalBusy(true);
+  openScanResults();
+}
+
+function updateScanProgress(message, percent) {
+  if (scanLoadingLabel) scanLoadingLabel.textContent = message;
+  if (scanProgressBar && typeof percent === "number") {
+    scanProgressBar.style.width = `${Math.min(100, Math.max(8, percent))}%`;
+  }
+}
+
+function isScanResultsOpen() {
+  return scanResultsBackdrop?.classList.contains("is-open");
+}
+
+function showScanReport(html, { onRevealed, reopen = true } = {}) {
+  if (scanResultsTitle) scanResultsTitle.textContent = "Scan results";
+  setScanModalBusy(false);
+
+  const applyReport = () => {
+    scanLoadingState?.classList.add("hidden");
+    scanLoadingState?.classList.remove("is-leaving");
+    scanLoadingState?.setAttribute("aria-busy", "false");
+
+    if (scanResultsBody) {
+      scanResultsBody.innerHTML = html;
+      scanResultsBody.classList.remove("hidden");
+      if (reopen || isScanResultsOpen()) {
+        scanResultsBody.classList.add("is-revealing");
+        requestAnimationFrame(() => scanResultsBody.classList.remove("is-revealing"));
+      }
+    }
+
+    scanResultsPanel?.classList.remove("is-loading");
+    scanResultsPanel?.classList.add("is-report");
+    if (reopen) openScanResults();
+    onRevealed?.();
+  };
+
+  if (!reopen && !isScanResultsOpen()) {
+    applyReport();
+    return;
+  }
+
+  if (scanLoadingState && !scanLoadingState.classList.contains("hidden")) {
+    scanLoadingState.classList.add("is-leaving");
+    setTimeout(applyReport, SCAN_TRANSITION_MS);
+  } else {
+    applyReport();
+  }
+}
+
+function openScanResults() {
+  setBackdropOpen(scanResultsBackdrop, true);
+  requestAnimationFrame(() => scanResultsClose?.focus());
+}
+
+function closeScanResults() {
+  setBackdropOpen(scanResultsBackdrop, false);
+}
+
+function closeAccount() {
+  setBackdropOpen(accountBackdrop, false);
 }
 
 /* ————————————————————————————————————————
@@ -391,7 +528,6 @@ function renderHistory() {
       closeHistory();
       if (!location.hash.startsWith("#/scan")) location.hash = "#/scan";
       displayFindings(findings, entry.extractedText || "", { fromHistory: true, source: entry.source || "scan" });
-      resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 }
@@ -954,7 +1090,7 @@ function renderIngredientCard(item) {
     </article>`;
 }
 
-function displayFindings(findings, extractedText, { fromHistory = false, source = "scan" } = {}) {
+function displayFindings(findings, extractedText, { fromHistory = false, source = "scan", reopen = true } = {}) {
   const text = extractedText || "";
   lastScan = { findings, text, source };
   const conditionResults = evaluateConditions(text, activeConditions);
@@ -1057,11 +1193,15 @@ function displayFindings(findings, extractedText, { fromHistory = false, source 
       Educational information only — not medical advice. Risk depends on how much and how often you eat something.
     </p>`;
 
-  resultBox.innerHTML = html;
-  bindAlternativesUI(findings);
-
   lastReport = { verdict, findings, conditionResults, kids, kidsRelevant, nutrition, nutritionFlags, text };
-  $("downloadReportBtn")?.addEventListener("click", downloadReportPdf);
+
+  showScanReport(html, {
+    reopen,
+    onRevealed: () => {
+      bindAlternativesUI(findings);
+      $("downloadReportBtn")?.addEventListener("click", downloadReportPdf);
+    },
+  });
 
   if (!fromHistory) {
     addHistoryEntry({ source, findings, extractedText: text, kidsMinAge: kids.minAge });
@@ -1217,12 +1357,12 @@ function downloadReportPdf() {
 }
 
 function showError(title, body, { showPaste = false } = {}) {
-  resultBox.innerHTML = `
+  showScanReport(`
     <section class="report-block report-error">
       <span class="eyebrow">Could not finish</span>
       <div class="block-head"><h3>${escapeHtml(title)}</h3></div>
       <p class="block-lead">${escapeHtml(body)}</p>
-    </section>`;
+    </section>`);
   if (showPaste) pastePanel?.classList.remove("hidden");
 }
 
@@ -1249,7 +1389,6 @@ function stageFile(file) {
   }
   pendingFile = file;
   setPreview(file);
-  resultBox.innerHTML = "";
   updateCreateButton();
   processImageFile(file);
 }
@@ -1277,18 +1416,18 @@ function setPreview(file) {
   previewWrap?.classList.remove("hidden");
 }
 
-function startScanning(label) {
+function startScanning() {
   isScanning = true;
-  resultBox.innerHTML = "";
-  progress?.classList.remove("hidden");
-  if (progressLabel) progressLabel.textContent = label;
+  showScanLoading({
+    title: "Reading label",
+    message: "Reading the label…",
+  });
   if (scanBtn) scanBtn.disabled = true;
   updateCreateButton();
 }
 
 function stopScanning() {
   isScanning = false;
-  progress?.classList.add("hidden");
   if (scanBtn) scanBtn.disabled = false;
   updateCreateButton();
 }
@@ -1330,16 +1469,16 @@ async function processImageFile(file) {
     return;
   }
 
-  startScanning("Reading the label…");
+  startScanning();
 
   try {
     const prepared = await prepareImageForOcr(file);
-    if (progressLabel) progressLabel.textContent = "Reading the label…";
+    updateScanProgress("Reading the label…", 12);
 
     const result = await Tesseract.recognize(prepared, "eng", {
       logger: (m) => {
-        if (m.status === "recognizing text" && typeof m.progress === "number" && progressLabel) {
-          progressLabel.textContent = `Reading the label… ${Math.round(m.progress * 100)}%`;
+        if (m.status === "recognizing text" && typeof m.progress === "number") {
+          updateScanProgress(`Reading the label… ${Math.round(m.progress * 100)}%`, 12 + m.progress * 78);
         }
       },
     });
@@ -1354,9 +1493,10 @@ async function processImageFile(file) {
       return;
     }
 
-    if (progressLabel) progressLabel.textContent = "Building your report…";
+    if (scanResultsTitle) scanResultsTitle.textContent = "Building report";
+    if (scanLoadingTitle) scanLoadingTitle.textContent = "Building report";
+    updateScanProgress("Building your report…", 94);
     displayFindings(findIngredients(extractedText), extractedText, { source: "photo" });
-    resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     console.error(error);
     showError("The scan failed", "The photo could not be read. Type the ingredients instead and you will get the same report.", { showPaste: true });
@@ -1373,12 +1513,15 @@ function analyzePastedText() {
   }
   const cleaned = enhanceOcrText(text);
   displayFindings(findIngredients(cleaned), cleaned, { source: "text" });
-  resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function refreshReport() {
+function refreshReport({ reopen = false } = {}) {
   if (!lastScan?.text) return;
-  displayFindings(lastScan.findings, lastScan.text, { fromHistory: true, source: lastScan.source });
+  displayFindings(lastScan.findings, lastScan.text, {
+    fromHistory: true,
+    source: lastScan.source,
+    reopen,
+  });
 }
 
 async function createFullReport() {
@@ -1393,8 +1536,7 @@ async function createFullReport() {
     return;
   }
   if (lastScan?.text) {
-    refreshReport();
-    resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    refreshReport({ reopen: true });
     return;
   }
   showError("Add a label first", "Drop a photo of the ingredients panel, or type the text, then create the report.");
@@ -1456,12 +1598,12 @@ function openAuth(mode) {
   authError.classList.add("hidden");
   authError.textContent = "";
   authForm.reset();
-  authBackdrop.classList.add("is-open");
+  setBackdropOpen(authBackdrop, true);
   setTimeout(() => (signup ? authName : authEmail).focus(), 120);
 }
 
 function closeAuth() {
-  authBackdrop.classList.remove("is-open");
+  setBackdropOpen(authBackdrop, false);
 }
 
 function renderAccount() {
@@ -1483,7 +1625,7 @@ function renderAccount() {
       ${activeConditions.length ? `Conditions: ${escapeHtml(activeConditions.map(conditionLabel).join(", "))}.` : "No conditions set."}
     </p>`;
 
-  accountBackdrop.classList.add("is-open");
+  setBackdropOpen(accountBackdrop, true);
 }
 
 /* ————————————————————————————————————————
@@ -1498,7 +1640,14 @@ imageInput?.addEventListener("change", () => {
 
 clearPreviewBtn?.addEventListener("click", () => {
   clearPreview();
-  resultBox.innerHTML = "";
+  clearScanResults();
+});
+
+bindBackdropDismiss(scanResultsBackdrop, () => {
+  if (!isScanning) closeScanResults();
+});
+scanResultsClose?.addEventListener("click", () => {
+  if (!isScanning) closeScanResults();
 });
 
 pasteToggleBtn?.addEventListener("click", () => {
@@ -1607,9 +1756,7 @@ menuSignOut?.addEventListener("click", () => {
 
 authSwitch?.addEventListener("click", () => openAuth(authMode === "signup" ? "signin" : "signup"));
 authClose?.addEventListener("click", closeAuth);
-authBackdrop?.addEventListener("click", (e) => {
-  if (e.target === authBackdrop) closeAuth();
-});
+bindBackdropDismiss(authBackdrop, closeAuth);
 
 authForm?.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -1635,15 +1782,13 @@ authForm?.addEventListener("submit", async (e) => {
   toast(authMode === "signup" ? `Profile created — welcome, ${result.user.name.split(" ")[0]}` : `Signed in as ${result.user.name.split(" ")[0]}`);
 });
 
-accountClose?.addEventListener("click", () => accountBackdrop.classList.remove("is-open"));
-accountBackdrop?.addEventListener("click", (e) => {
-  if (e.target === accountBackdrop) accountBackdrop.classList.remove("is-open");
-});
+accountClose?.addEventListener("click", closeAccount);
+bindBackdropDismiss(accountBackdrop, closeAccount);
 
 deleteAccountBtn?.addEventListener("click", () => {
   if (!confirm("Delete this profile and everything saved under it? This cannot be undone.")) return;
   Auth.deleteCurrent();
-  accountBackdrop.classList.remove("is-open");
+  closeAccount();
   toast("Profile deleted");
 });
 
@@ -1651,7 +1796,8 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   closeHistory();
   closeAuth();
-  accountBackdrop.classList.remove("is-open");
+  closeAccount();
+  if (!isScanning) closeScanResults();
   profileMenu.classList.add("hidden");
   setConditionMenuOpen(false);
 });

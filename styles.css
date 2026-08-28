@@ -1318,6 +1318,10 @@ h1, h2,
   color: var(--ink-2);
 }
 
+.paste-analyze-btn {
+  margin-top: 12px;
+}
+
 .field {
   width: 100%;
   padding: 11px 12px;
@@ -1341,17 +1345,7 @@ textarea.field {
   line-height: 1.65;
 }
 
-/* Progress */
-.progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-  padding: 15px 18px;
-  border-radius: var(--radius);
-  background: var(--green-tint);
-}
-
+/* Spinner (scan modal) */
 .spinner {
   width: 18px;
   height: 18px;
@@ -1366,12 +1360,6 @@ textarea.field {
   to {
     transform: rotate(360deg);
   }
-}
-
-.progress-label {
-  font-size: 0.906rem;
-  font-weight: 500;
-  color: var(--green-dark);
 }
 
 /* ——— Report ——— */
@@ -2369,6 +2357,12 @@ textarea.field {
   pointer-events: auto;
 }
 
+.modal-backdrop-blur {
+  background: rgba(16, 20, 19, 0.32);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 .modal {
   width: min(450px, 100%);
   max-height: 90vh;
@@ -2397,6 +2391,197 @@ textarea.field {
   font-size: 0.938rem;
   color: var(--ink-2);
   margin-bottom: 24px;
+}
+
+.modal-report {
+  width: min(720px, 100%);
+  max-height: 92vh;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.modal-report-head .drawer-close {
+  flex-shrink: 0;
+}
+
+.modal-report-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.modal-report-body {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 0;
+}
+
+.modal-report-body.scan-results-panel {
+  padding: 0;
+  min-height: min(420px, 62vh);
+}
+
+.scan-results-panel.is-loading {
+  overflow: hidden;
+}
+
+.scan-results-panel.is-report {
+  padding: 24px;
+}
+
+/* Scan modal — loading state */
+.scan-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 36px 28px 40px;
+  min-height: min(420px, 62vh);
+  animation: scanFadeIn 0.38s var(--ease) both;
+}
+
+.scan-loading.is-leaving {
+  animation: scanFadeOut 0.28s var(--ease) forwards;
+}
+
+.scan-loading-visual {
+  position: relative;
+  width: min(220px, 72vw);
+  aspect-ratio: 4 / 3;
+  margin-bottom: 8px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-grey);
+  box-shadow: var(--shadow-sm);
+}
+
+.scan-loading-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-loading-scanline {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #6fe0b8, transparent);
+  box-shadow: 0 0 16px 2px rgba(111, 224, 184, 0.5);
+  animation: scan 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.scan-loading-spinner {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(16, 20, 19, 0.12);
+}
+
+.scan-loading-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.scan-loading-sub {
+  margin: 0;
+  max-width: 28em;
+  font-size: 0.906rem;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+
+.scan-progress-track {
+  width: min(280px, 80%);
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 100px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.scan-progress-bar {
+  height: 100%;
+  width: 8%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), #6fe0b8);
+  transition: width 0.35s var(--ease);
+}
+
+.scan-loading-label {
+  margin: 4px 0 0;
+  font-size: 0.844rem;
+  font-weight: 500;
+  color: var(--green-dark);
+}
+
+.scan-report {
+  margin-top: 0;
+}
+
+.scan-report.is-revealing {
+  animation: reportReveal 0.45s var(--ease) both;
+}
+
+@keyframes scanFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scanFadeOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes reportReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.modal-backdrop.is-busy {
+  cursor: progress;
 }
 
 .form-grid {
@@ -2649,6 +2834,28 @@ textarea.field {
 
   .modal {
     padding: 26px 20px;
+  }
+
+  .modal-report {
+    max-height: 94vh;
+    padding: 0;
+  }
+
+  .modal-report-head {
+    padding: 16px 18px;
+  }
+
+  .modal-report-body.scan-results-panel {
+    min-height: min(360px, 58vh);
+  }
+
+  .scan-loading {
+    min-height: min(360px, 58vh);
+    padding: 28px 20px 32px;
+  }
+
+  .scan-results-panel.is-report {
+    padding: 18px;
   }
 
   .note-strip {

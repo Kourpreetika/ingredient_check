@@ -294,18 +294,7 @@
                         <span id="conditionTriggerLabel" class="is-placeholder">Select your conditions</span>
                         <svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
                     </summary>
-                    <div class="condition-picks" id="conditionMenu" role="group" aria-label="Health conditions">
-                        <label class="select-option"><input type="checkbox" data-condition="diabetes-a"><span>Diabetes Type A</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="diabetes-b"><span>Diabetes Type B</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="hypertension"><span>High BP</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="hypotension"><span>Low BP</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="heart"><span>Heart disease</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="kidney"><span>Kidney disease</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="pcos"><span>PCOD</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="asthma"><span>Asthma</span></label>
-                        <label class="select-option"><input type="checkbox" data-condition="gut"><span>Sensitive gut</span></label>
-                        <button type="button" class="select-clear" id="conditionClear">Clear all</button>
-                    </div>
+                    <div class="condition-picks" id="conditionMenu" role="group" aria-label="Health conditions"></div>
                 </details>
                 <p class="step-note" id="conditionNote"></p>
             </div>
@@ -360,12 +349,7 @@
                 <div class="paste-panel hidden" id="pastePanel">
                     <label for="pasteText">Ingredients text from the pack</label>
                     <textarea class="field" id="pasteText" placeholder="Ingredients: wheat flour, sugar, palm oil, salt…"></textarea>
-                    <button type="button" class="btn btn-primary btn-sm" id="analyzeTextBtn">Analyse text</button>
-                </div>
-
-                <div class="progress hidden" id="progress">
-                    <span class="spinner" aria-hidden="true"></span>
-                    <span class="progress-label" id="progressLabel">Reading label…</span>
+                    <button type="button" class="btn btn-primary btn-sm paste-analyze-btn" id="analyzeTextBtn">Analyse text</button>
                 </div>
             </div>
 
@@ -381,8 +365,6 @@
                 <button type="button" class="btn btn-primary btn-block" id="createReportBtn">Create a full report</button>
             </div>
         </div>
-
-        <div class="report" id="resultBox" role="region" aria-live="polite"></div>
     </div>
 </main>
 
@@ -407,7 +389,7 @@
 </aside>
 
 <!-- ————————————————————————— AUTH ————————————————————————— -->
-<div class="modal-backdrop" id="authBackdrop">
+<div class="modal-backdrop" id="authBackdrop" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <p class="eyebrow" id="authEyebrow">Profile</p>
         <h2 id="authTitle">Create a profile</h2>
@@ -443,8 +425,34 @@
     </div>
 </div>
 
+<!-- ————————————————————————— SCAN RESULTS ————————————————————————— -->
+<div class="modal-backdrop modal-backdrop-blur" id="scanResultsBackdrop" aria-hidden="true">
+    <div class="modal modal-report" role="dialog" aria-modal="true" aria-labelledby="scanResultsTitle">
+        <div class="modal-report-head">
+            <h2 id="scanResultsTitle">Scan results</h2>
+            <button type="button" class="drawer-close" id="scanResultsClose" aria-label="Close results">✕</button>
+        </div>
+        <div class="modal-report-body scan-results-panel" id="scanResultsPanel">
+            <div class="scan-loading hidden" id="scanLoadingState" aria-live="polite" aria-busy="true">
+                <div class="scan-loading-visual">
+                    <img id="scanLoadingPreview" class="scan-loading-thumb hidden" alt="">
+                    <span class="scan-loading-scanline" aria-hidden="true"></span>
+                    <span class="spinner scan-loading-spinner" aria-hidden="true"></span>
+                </div>
+                <p class="scan-loading-title" id="scanLoadingTitle">Reading label</p>
+                <p class="scan-loading-sub" id="scanLoadingSub">Extracting ingredients from your photo. This stays on your device.</p>
+                <div class="scan-progress-track" aria-hidden="true">
+                    <div class="scan-progress-bar" id="scanProgressBar"></div>
+                </div>
+                <p class="scan-loading-label" id="scanLoadingLabel">Reading the label…</p>
+            </div>
+            <div class="report scan-report hidden" id="scanResultsBody" role="region" aria-live="polite"></div>
+        </div>
+    </div>
+</div>
+
 <!-- ————————————————————————— ACCOUNT ————————————————————————— -->
-<div class="modal-backdrop" id="accountBackdrop">
+<div class="modal-backdrop" id="accountBackdrop" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
         <p class="eyebrow">Account</p>
         <h2 id="accountTitle">Your profile</h2>
