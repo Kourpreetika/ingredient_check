@@ -5,7 +5,7 @@
  *   ingredient-database.js  INGREDIENT_DB, PRODUCT_ALTERNATIVES, SEVERITY_RANK
  *   condition-database.js   CONDITION_LIBRARY, KIDS_SAFETY_RULES, evaluateConditions,
  *                           evaluateKidsSafety, cdMatchGroup, cdNormalize, cdCollapseCodes
- *   profile.js              Auth
+ *   profile.js              Auth (Supabase session + Postgres profile)
  */
 
 const MAX_HISTORY = 24;
@@ -33,6 +33,7 @@ function writeStore(base, value) {
   } catch (error) {
     console.warn("Could not save", base, error);
   }
+  Auth.persistSoon?.();
 }
 
 /* ————————————————————————————————————————
@@ -1557,7 +1558,7 @@ function refreshIdentity() {
 
   if (headerName) headerName.textContent = user ? user.name.split(" ")[0] : "Guest";
   if (menuName) menuName.textContent = user ? user.name : "Browsing as guest";
-  if (menuMeta) menuMeta.textContent = user ? user.email : "Scans stay on this device";
+  if (menuMeta) menuMeta.textContent = user ? user.email : "Guest scans stay on this device";
 
   menuSignIn?.classList.toggle("hidden", Boolean(user));
   menuSignUp?.classList.toggle("hidden", Boolean(user));
@@ -1586,10 +1587,14 @@ function openAuth(mode) {
 
   authTitle.textContent = signup ? "Create a profile" : "Sign in";
   authSub.textContent = signup
-    ? "Save your conditions and scan history on this device."
-    : "Welcome back.";
+    ? "Your conditions and scan history will follow you on any device."
+    : "Welcome back. Your saved scans and conditions will load with your account.";
+  if (!Auth.configured()) {
+    authSub.textContent =
+      "Connect a Supabase project in supabase-config.js to create an account. You can still scan as a guest.";
+  }
   authSubmit.textContent = signup ? "Create profile" : "Sign in";
-  authSwitchText.textContent = signup ? "Already have a profile here?" : "No profile on this device yet?";
+  authSwitchText.textContent = signup ? "Already have an account?" : "Need an account?";
   authSwitch.textContent = signup ? "Sign in" : "Create one";
   authPasswordHint?.classList.add("hidden");
   authNameRow.classList.toggle("hidden", !signup);
@@ -1620,8 +1625,8 @@ function renderAccount() {
       </div>
     </div>
     <p class="panel-note">
-      Profile created ${escapeHtml(new Date(user.createdAt).toLocaleDateString())}.
-      ${scans} scan${scans === 1 ? "" : "s"} saved.
+      Account created ${escapeHtml(new Date(user.createdAt).toLocaleDateString())}.
+      ${scans} scan${scans === 1 ? "" : "s"} saved to your account.
       ${activeConditions.length ? `Conditions: ${escapeHtml(activeConditions.map(conditionLabel).join(", "))}.` : "No conditions set."}
     </p>`;
 
@@ -1748,9 +1753,9 @@ menuAccount?.addEventListener("click", () => {
   profileMenu.classList.add("hidden");
   renderAccount();
 });
-menuSignOut?.addEventListener("click", () => {
+menuSignOut?.addEventListener("click", async () => {
   profileMenu.classList.add("hidden");
-  Auth.signOut();
+  await Auth.signOut();
   toast("Signed out — back to guest scans");
 });
 
@@ -1762,6 +1767,8 @@ authForm?.addEventListener("submit", async (e) => {
   e.preventDefault();
   authError.classList.add("hidden");
   authSubmit.disabled = true;
+  const previousLabel = authSubmit.textContent;
+  authSubmit.textContent = authMode === "signup" ? "Creating profile…" : "Signing in…";
 
   const payload = {
     name: authName.value,
@@ -1771,6 +1778,7 @@ authForm?.addEventListener("submit", async (e) => {
   const result = authMode === "signup" ? await Auth.signUp(payload) : await Auth.signIn(payload);
 
   authSubmit.disabled = false;
+  authSubmit.textContent = previousLabel;
 
   if (!result.ok) {
     authError.textContent = result.error;
@@ -1779,15 +1787,26 @@ authForm?.addEventListener("submit", async (e) => {
   }
 
   closeAuth();
-  toast(authMode === "signup" ? `Profile created — welcome, ${result.user.name.split(" ")[0]}` : `Signed in as ${result.user.name.split(" ")[0]}`);
+  if (result.needsConfirm) {
+    toast("Check your email to confirm the account, then sign in.");
+    return;
+  }
+  const first = (result.user?.name || "there").split(" ")[0];
+  toast(authMode === "signup" ? `Profile created — welcome, ${first}` : `Signed in as ${first}`);
 });
 
 accountClose?.addEventListener("click", closeAccount);
 bindBackdropDismiss(accountBackdrop, closeAccount);
 
-deleteAccountBtn?.addEventListener("click", () => {
+deleteAccountBtn?.addEventListener("click", async () => {
   if (!confirm("Delete this profile and everything saved under it? This cannot be undone.")) return;
-  Auth.deleteCurrent();
+  deleteAccountBtn.disabled = true;
+  const result = await Auth.deleteCurrent();
+  deleteAccountBtn.disabled = false;
+  if (!result?.ok) {
+    toast(result?.error || "Could not delete the account.");
+    return;
+  }
   closeAccount();
   toast("Profile deleted");
 });
@@ -1815,7 +1834,10 @@ Auth.subscribe(() => {
 renderHomeStats();
 renderConditionCover();
 renderKidsAgeList();
-refreshIdentity();
-loadScopedState();
 updateCreateButton();
 applyRoute();
+
+Auth.ready.then(() => {
+  refreshIdentity();
+  loadScopedState();
+});

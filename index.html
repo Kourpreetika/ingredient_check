@@ -45,7 +45,7 @@
                 <div class="profile-menu hidden" id="profileMenu" role="menu">
                     <div class="profile-menu-head">
                         <p class="profile-name" id="menuName">Browsing as guest</p>
-                        <p class="profile-meta" id="menuMeta">Scans stay on this device</p>
+                        <p class="profile-meta" id="menuMeta">Guest scans stay on this device</p>
                     </div>
                     <button type="button" class="menu-item" id="menuHistory" role="menuitem">Scan history</button>
                     <button type="button" class="menu-item" id="menuAccount" role="menuitem">Account details</button>
@@ -240,11 +240,11 @@
                     <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
                 </span>
                 <div>
-                    <h3>Your scans do not leave this browser</h3>
+                    <h3>Photos stay on this device</h3>
                     <p>
-                        Photos are processed on your device and thrown away. History, conditions and any profile you
-                        create are stored in this browser's local storage — which also means clearing site data wipes
-                        them, and they will not follow you to another computer.
+                        Label photos are read on your device and thrown away. Guest scans stay in this browser.
+                        Sign in and your conditions and scan history are saved to your account, so they come with
+                        you on the next device.
                     </p>
                 </div>
             </div>
@@ -393,7 +393,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <p class="eyebrow" id="authEyebrow">Profile</p>
         <h2 id="authTitle">Create a profile</h2>
-        <p class="modal-sub" id="authSub">Save your conditions and scan history on this device.</p>
+        <p class="modal-sub" id="authSub">Your conditions and scan history will follow you on any device.</p>
 
         <form class="form-grid" id="authForm" novalidate>
             <div class="form-error hidden" id="authError"></div>
@@ -418,7 +418,7 @@
         </form>
 
         <div class="form-footer">
-            <span id="authSwitchText">Already have a profile here?</span>
+            <span id="authSwitchText">Already have an account?</span>
             <button type="button" class="link-btn" id="authSwitch">Sign in</button>
             <button type="button" class="btn btn-ghost btn-sm" id="authClose" style="margin-left:auto">Cancel</button>
         </div>
@@ -456,7 +456,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
         <p class="eyebrow">Account</p>
         <h2 id="accountTitle">Your profile</h2>
-        <p class="modal-sub" id="accountSub">Stored locally in this browser.</p>
+        <p class="modal-sub" id="accountSub">Saved to your account, so you stay signed in on this device.</p>
 
         <div class="panel" id="accountBody"></div>
 
@@ -469,6 +469,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ingredient-database.js"></script>
 <script src="condition-database.js"></script>
 <script src="profile.js"></script>

@@ -1,20 +1,43 @@
 /*
- * profile.js — local profiles.
+ * profile.js — accounts via Supabase (Postgres + Auth).
  *
- * There is no server here. A "profile" is a record in this browser's
- * localStorage that keeps one person's conditions and scan history separate
- * from another's on a shared machine. Passwords are salted and hashed so they
- * are not sitting in storage as plain text, but this is not authentication and
- * the UI says so plainly — anyone with access to the browser can read the data.
+ * Sign-up and sign-in go to auth.users. A trigger in supabase/schema.sql
+ * creates a matching profiles row and an empty user_data row. Sessions are
+ * stored in localStorage and refreshed automatically, so a returning visitor
+ * stays signed in. Conditions and scan history for a signed-in user are
+ * written to public.user_data; guests still use this browser only.
+ *
+ * Requires (loaded first): supabase-config.js, @supabase/supabase-js
  */
-
-const AUTH_USERS_KEY = "ingredient_check_users";
-const AUTH_SESSION_KEY = "ingredient_check_session";
 
 const Auth = (() => {
   const listeners = new Set();
+  const STORAGE_PREFIX = "ingredient_check_";
 
-  function read(key, fallback) {
+  let client = null;
+  let sessionUser = null;
+  let hydrating = false;
+  let persistTimer = null;
+  let readySettled = false;
+
+  let readyResolve;
+  const ready = new Promise((resolve) => {
+    readyResolve = resolve;
+  });
+
+  function configured() {
+    const url = String(window.SUPABASE_URL || "").trim();
+    const key = String(window.SUPABASE_ANON_KEY || "").trim();
+    return Boolean(url && key && !url.includes("YOUR-PROJECT-REF") && key !== "YOUR-ANON-KEY");
+  }
+
+  function settleReady() {
+    if (readySettled) return;
+    readySettled = true;
+    readyResolve();
+  }
+
+  function readLocal(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : fallback;
@@ -23,7 +46,7 @@ const Auth = (() => {
     }
   }
 
-  function write(key, value) {
+  function writeLocal(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
@@ -33,48 +56,23 @@ const Auth = (() => {
     }
   }
 
-  function users() {
-    const list = read(AUTH_USERS_KEY, []);
-    return Array.isArray(list) ? list : [];
+  function scopedKey(base, userId) {
+    return `${STORAGE_PREFIX}${base}:u_${userId}`;
   }
 
-  function randomSalt() {
-    if (window.crypto?.getRandomValues) {
-      const bytes = new Uint8Array(16);
-      window.crypto.getRandomValues(bytes);
-      return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-    }
-    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  function current() {
+    return sessionUser;
   }
 
-  /**
-   * SHA-256 where available. crypto.subtle is missing on plain http:// origins,
-   * so fall back to a plain string hash rather than failing sign-up entirely.
-   */
-  async function hashPassword(password, salt) {
-    const input = `${salt}::${password}`;
-    if (window.crypto?.subtle) {
-      try {
-        const data = new TextEncoder().encode(input);
-        const digest = await window.crypto.subtle.digest("SHA-256", data);
-        return `sha256:${[...new Uint8Array(digest)]
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("")}`;
-      } catch {
-        /* fall through */
-      }
-    }
-    let h1 = 0x811c9dc5;
-    let h2 = 0x01000193;
-    for (let i = 0; i < input.length; i += 1) {
-      h1 = Math.imul(h1 ^ input.charCodeAt(i), 16777619) >>> 0;
-      h2 = Math.imul(h2 + input.charCodeAt(i) * (i + 1), 2246822519) >>> 0;
-    }
-    return `weak:${h1.toString(16)}${h2.toString(16)}`;
+  function scope() {
+    return sessionUser ? `u_${sessionUser.id}` : "guest";
   }
 
-  function normalizeEmail(email) {
-    return String(email || "").trim().toLowerCase();
+  function initials(user) {
+    if (!user) return "GU";
+    const parts = String(user.name || user.email || "?").trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return String(parts[0] || "?").slice(0, 2).toUpperCase();
   }
 
   function notify() {
@@ -87,26 +85,177 @@ const Auth = (() => {
     });
   }
 
-  function current() {
-    const id = read(AUTH_SESSION_KEY, null);
-    if (!id) return null;
-    return users().find((u) => u.id === id) || null;
+  function mapUser(authUser, profile) {
+    if (!authUser) return null;
+    const metaName = authUser.user_metadata?.name;
+    return {
+      id: authUser.id,
+      name: profile?.name || metaName || authUser.email?.split("@")[0] || "Account",
+      email: authUser.email || "",
+      createdAt: profile?.created_at || authUser.created_at,
+    };
   }
 
-  /** Storage suffix so each profile keeps its own history and settings. */
-  function scope() {
-    const user = current();
-    return user ? `u_${user.id}` : "guest";
+  function explainError(error, fallback) {
+    const msg = String(error?.message || "").toLowerCase();
+    if (msg.includes("failed to fetch") || msg.includes("network")) {
+      return "Could not reach the account server. Check your connection and try again.";
+    }
+    if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
+      return "That email or password is not right.";
+    }
+    if (msg.includes("already registered") || msg.includes("already been registered")) {
+      return "An account with that email already exists. Sign in instead.";
+    }
+    if (msg.includes("email not confirmed")) {
+      return "Confirm your email from the link we sent, then sign in.";
+    }
+    if (msg.includes("password should be") || msg.includes("password is known")) {
+      return error.message;
+    }
+    if (msg.includes("not authenticated") || msg.includes("jwt")) {
+      return "Your session expired. Sign in again.";
+    }
+    return error?.message || fallback;
   }
 
-  function initials(user) {
-    if (!user) return "GU";
-    const parts = String(user.name || user.email || "?").trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return String(parts[0] || "?").slice(0, 2).toUpperCase();
+  function notConfiguredError() {
+    return {
+      ok: false,
+      error:
+        "Accounts are not connected yet. Add your project URL and anon key to supabase-config.js, then run supabase/schema.sql in the Supabase SQL Editor.",
+    };
+  }
+
+  async function hydrate(session) {
+    hydrating = true;
+    try {
+      if (!session?.user || !client) {
+        sessionUser = null;
+        return;
+      }
+
+      const authUser = session.user;
+      let profile = null;
+      const { data: profileRow } = await client.from("profiles").select("id, name, created_at").eq("id", authUser.id).maybeSingle();
+      profile = profileRow;
+
+      if (!profile) {
+        const fallbackName =
+          String(authUser.user_metadata?.name || "").trim() || authUser.email?.split("@")[0] || "Account";
+        const { data: upserted } = await client
+          .from("profiles")
+          .upsert({ id: authUser.id, name: fallbackName })
+          .select("id, name, created_at")
+          .maybeSingle();
+        profile = upserted;
+      }
+
+      sessionUser = mapUser(authUser, profile);
+
+      const { data: row } = await client
+        .from("user_data")
+        .select("conditions, kids_product, history")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+      if (row) {
+        writeLocal(scopedKey("conditions", authUser.id), Array.isArray(row.conditions) ? row.conditions : []);
+        writeLocal(scopedKey("kidsproduct", authUser.id), Boolean(row.kids_product));
+        writeLocal(scopedKey("history", authUser.id), Array.isArray(row.history) ? row.history : []);
+      } else {
+        await client.from("user_data").upsert({ user_id: authUser.id });
+      }
+    } catch (error) {
+      console.warn("Could not load account data", error);
+      if (session?.user) {
+        sessionUser = mapUser(session.user, null);
+      }
+    } finally {
+      hydrating = false;
+    }
+  }
+
+  async function flushPersist() {
+    if (!client || !sessionUser || hydrating) return;
+
+    const id = sessionUser.id;
+    const payload = {
+      user_id: id,
+      conditions: readLocal(scopedKey("conditions", id), []),
+      kids_product: readLocal(scopedKey("kidsproduct", id), false) === true,
+      history: readLocal(scopedKey("history", id), []),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await client.from("user_data").upsert(payload, { onConflict: "user_id" });
+    if (error) console.warn("Could not save account data", error);
+  }
+
+  function persistSoon() {
+    if (!sessionUser || !client || hydrating) return;
+    clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+      flushPersist().catch((error) => console.warn(error));
+    }, 450);
+  }
+
+  function clearScopedLocal(userId) {
+    const suffix = `:u_${userId}`;
+    try {
+      const doomed = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(STORAGE_PREFIX) && key.endsWith(suffix)) doomed.push(key);
+      }
+      doomed.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function init() {
+    if (!configured()) {
+      settleReady();
+      return;
+    }
+
+    if (!window.supabase?.createClient) {
+      console.error("Supabase library did not load. Sign-in is unavailable.");
+      settleReady();
+      return;
+    }
+
+    client = window.supabase.createClient(window.SUPABASE_URL.trim(), window.SUPABASE_ANON_KEY.trim(), {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: "ingredient_check_supabase_auth",
+      },
+    });
+
+    const {
+      data: { session },
+    } = await client.auth.getSession();
+    await hydrate(session);
+    settleReady();
+    notify();
+
+    client.auth.onAuthStateChange(async (event, nextSession) => {
+      if (event === "INITIAL_SESSION") return;
+      await hydrate(nextSession);
+      notify();
+    });
+  }
+
+  function normalizeEmail(email) {
+    return String(email || "").trim().toLowerCase();
   }
 
   async function signUp({ name, email, password }) {
+    if (!configured() || !client) return notConfiguredError();
+
     const cleanName = String(name || "").trim();
     const cleanEmail = normalizeEmail(email);
 
@@ -114,74 +263,83 @@ const Auth = (() => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) return { ok: false, error: "That email address does not look right." };
     if (String(password || "").length < 8) return { ok: false, error: "Use a password of at least 8 characters." };
 
-    const list = users();
-    if (list.some((u) => u.email === cleanEmail)) {
-      return { ok: false, error: "A profile with that email already exists on this device. Sign in instead." };
-    }
-
-    const salt = randomSalt();
-    const user = {
-      id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-      name: cleanName,
+    const { data, error } = await client.auth.signUp({
       email: cleanEmail,
-      salt,
-      hash: await hashPassword(password, salt),
-      createdAt: new Date().toISOString(),
-    };
+      password: String(password),
+      options: { data: { name: cleanName } },
+    });
 
-    list.push(user);
-    if (!write(AUTH_USERS_KEY, list)) {
-      return { ok: false, error: "This browser is blocking local storage, so the profile could not be saved." };
+    if (error) return { ok: false, error: explainError(error, "Could not create the account.") };
+
+    if (data.user && !data.session) {
+      return {
+        ok: true,
+        needsConfirm: true,
+        user: { id: data.user.id, name: cleanName, email: cleanEmail },
+      };
     }
-    write(AUTH_SESSION_KEY, user.id);
-    notify();
-    return { ok: true, user };
+
+    if (data.session) {
+      if (data.user) {
+        await client.from("profiles").upsert({ id: data.user.id, name: cleanName });
+      }
+      await hydrate(data.session);
+      notify();
+    }
+
+    return { ok: true, user: sessionUser || mapUser(data.user, { name: cleanName }) };
   }
 
   async function signIn({ email, password }) {
+    if (!configured() || !client) return notConfiguredError();
+
     const cleanEmail = normalizeEmail(email);
-    const user = users().find((u) => u.email === cleanEmail);
-    if (!user) {
-      return { ok: false, error: "No profile with that email on this device. Create one first." };
-    }
-    const hash = await hashPassword(password, user.salt);
-    if (hash !== user.hash) {
-      return { ok: false, error: "That password does not match. There is no recovery for local profiles." };
-    }
-    write(AUTH_SESSION_KEY, user.id);
+    if (!cleanEmail || !password) return { ok: false, error: "Enter your email and password." };
+
+    const { data, error } = await client.auth.signInWithPassword({
+      email: cleanEmail,
+      password: String(password),
+    });
+
+    if (error) return { ok: false, error: explainError(error, "Could not sign in.") };
+
+    await hydrate(data.session);
     notify();
-    return { ok: true, user };
+    return { ok: true, user: sessionUser };
   }
 
-  function signOut() {
-    try {
-      localStorage.removeItem(AUTH_SESSION_KEY);
-    } catch {
-      /* ignore */
+  async function signOut() {
+    clearTimeout(persistTimer);
+    if (client) {
+      await client.auth.signOut();
     }
+    sessionUser = null;
     notify();
   }
 
-  /** Removes the profile and everything stored under its scope. */
-  function deleteCurrent() {
-    const user = current();
-    if (!user) return false;
+  async function deleteCurrent() {
+    const user = sessionUser;
+    if (!user) return { ok: false, error: "No account is signed in." };
 
-    const suffix = `u_${user.id}`;
-    try {
-      const doomed = [];
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
-        if (key && key.endsWith(`:${suffix}`)) doomed.push(key);
+    if (client) {
+      await flushPersist();
+      const { error } = await client.rpc("delete_own_account");
+      if (error) {
+        await client.from("user_data").delete().eq("user_id", user.id);
+        await client.from("profiles").delete().eq("id", user.id);
+        console.warn("Account row cleanup:", error.message);
       }
-      doomed.forEach((key) => localStorage.removeItem(key));
-    } catch {
-      /* ignore */
+      try {
+        await client.auth.signOut();
+      } catch {
+        /* ignore */
+      }
     }
 
-    write(AUTH_USERS_KEY, users().filter((u) => u.id !== user.id));
-    signOut();
-    return true;
+    clearScopedLocal(user.id);
+    sessionUser = null;
+    notify();
+    return { ok: true };
   }
 
   function subscribe(fn) {
@@ -189,5 +347,22 @@ const Auth = (() => {
     return () => listeners.delete(fn);
   }
 
-  return { current, scope, initials, signUp, signIn, signOut, deleteCurrent, subscribe, count: () => users().length };
+  init().catch((error) => {
+    console.error("Auth failed to start", error);
+    settleReady();
+  });
+
+  return {
+    ready,
+    configured,
+    current,
+    scope,
+    initials,
+    signUp,
+    signIn,
+    signOut,
+    deleteCurrent,
+    persistSoon,
+    subscribe,
+  };
 })();
